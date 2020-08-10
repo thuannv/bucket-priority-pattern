@@ -1,15 +1,15 @@
 # Bucket Priority Partitioner
 
-Implement record prioritization in [Apache Kafka](https://kafka.apache.org) is often deemed a hard task because Kafka doesn't support broker-level reordering of records like some messaging technologies do.
+Implement record prioritization in [Apache Kafka](https://kafka.apache.org) is often a hard task because Kafka doesn't support broker-level reordering of records like some messaging technologies do.
 Some developers see this as a limitation but the reality is that it isn't because Kafka is not supposed to allow record reordering in the first place.
-As a distributed commit log, records are immutable and so their order within the topic partitions.
+In a distributed commit log records are immutable and so their ordering within the topic partitions.
 Nevertheless, this doesn't change the fact the developers would like to implement record prioritization in Kafka.
 
 This project contains a partitioner that solves this problem differently, by breaking down the Kafka topic into multiple buckets, and each bucket will have a configurable number of partitions assigned to it.
 Developers can control how large/small each bucket will be by providing an allocation percentage in the configuration properties used to construct a Kafka producer.
 In runtime the partitioner relies on data avaiable on each record key to decide which bucket to use, while being able to fallback to another strategy if the record doesn't contain the necessary data in the key or if there is no key whatsoever.
 
-<img src="images/high-level-overview.png" align="center" />
+![High Level Overview](images/high-level-overview.png)
 
 In the example above, a producer is sending a record with a key that contains the string `Platinum`.
 The partitioner then will decide that the record should be sent to one of the partitions belonging to the bucket `Platinum`, therefore leveraging one of the partitions assigned to that bucket (`0`, `1`, `2`, or `3`) as shown above.
