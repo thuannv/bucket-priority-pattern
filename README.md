@@ -68,7 +68,7 @@ configs.setProperty(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70, 30")
 
 ## Fallback action
 
-There are some situations where the partitioner will need to decide what to do when there is not enough data available in the record to decide which bucket to use. For instance:
+There are some situations where the partitioner will need to know what to do when there is not enough data available in the record to decide which bucket to use. For instance:
 
 * When the topic specified in the record doesn't need record prioritization.
 * When a key is not present in the record or it's not using the right format.
