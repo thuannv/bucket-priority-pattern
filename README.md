@@ -76,7 +76,7 @@ There are some situations where the partitioner will need to know what to do whe
 
 For these situations the partitioner needs to know what to do and we call this fallback action.
 By default the fallback action is to leverage the same logic used for the default partitioner in Kafka.
-But if you can modify this behavior by specifying that it should use round robin:
+But you can modify this behavior by specifying for example that it should use round robin:
 
 ```bash
 configs.setProperty(BucketPriorityPartitionerConfig.FALLBACK_ACTION_CONFIG, "RoundRobin");
