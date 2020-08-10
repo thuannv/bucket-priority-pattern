@@ -15,6 +15,9 @@ In the example above, a producer is sending a record with a key that contains th
 The partitioner then will decide that the record should be sent to one of the partitions belonging to the bucket `Platinum`, therefore leveraging one of the partitions assigned to that bucket (`0`, `1`, `2`, or `3`) as shown above.
 The partitioner distributes the records on each bucket using a round-robin algorithm to maximize consumption parallelism.
 
+The usage of this partitioner distributes records into buckets that might have different priorities to the business, and if the consumers also rely on the same logic they can coordinate themselves to process certain buckets before others to implement the record prioritization.
+You can use the project [Bucket Priority Assignor](https://github.com/riferrei/bucket-priority-assignor) to ensure that your consumers will be assigned to the topic partitions using the bucket priority logic.
+
 ## Building the project
 
 The first thing you need to do to start using this partitioner is building it. In order to do that, you need to install the following dependencies:
