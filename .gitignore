@@ -11,6 +11,9 @@
 .mtj.tmp/
 
 # VSCode
+.classpath
+.project
+target
 .vscode
 .settings
 .target
