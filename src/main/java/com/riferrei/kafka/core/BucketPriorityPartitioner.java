@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.common.Cluster;
@@ -33,14 +32,10 @@ import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.clients.producer.RoundRobinPartitioner;
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
-import org.apache.kafka.common.utils.Utils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.riferrei.kafka.core.Bucket.size;
 
 public class BucketPriorityPartitioner implements Partitioner {
-
-    private final Logger log = LoggerFactory.getLogger(BucketPriorityPartitioner.class);
 
     private Partitioner fallbackPartitioner;
     private BucketPriorityConfig config;
@@ -79,7 +74,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
             String bucketName = config.buckets().get(i).trim();
-            buckets.put(bucketName, new Bucket(bucketName, bucketAlloc.get(i)));
+            buckets.put(bucketName, new Bucket(bucketAlloc.get(i)));
         }
         // Sort the buckets with higher allocation to come
         // first than the others. This will help later during
@@ -190,92 +185,19 @@ public class BucketPriorityPartitioner implements Partitioner {
         }
         // Finally assign the available partitions to buckets
         int partition = -1;
+        TopicPartition topicPartition = null;
         bucketAssign: for (String bucketName : buckets.keySet()) {
             Bucket bucket = buckets.get(bucketName);
             int bucketSize = layout.get(bucketName);
-            bucket.clearExistingPartitions();
+            bucket.getPartitions().clear();
             for (int i = 0; i < bucketSize; i++) {
-                bucket.addPartition(++partition);
+                topicPartition = new TopicPartition(config.topic(), ++partition);
+                bucket.getPartitions().add(topicPartition);
                 if (partition == partitions.size() - 1) {
                     break bucketAssign;
                 }
             }
         }
-    }
-
-    private int size(int allocation, int partitionCount) {
-        return Math.round(((float) allocation / 100) * partitionCount);
-    }
-
-    private class Bucket implements Comparable<Bucket> {
-
-        private String bucketName;
-        private int allocation;
-        private List<TopicPartition> partitions;
-        private AtomicInteger counter;
-
-        public Bucket(String bucketName, int allocation) {
-            this.bucketName = bucketName;
-            this.allocation = allocation;
-            partitions = new ArrayList<>();
-            counter = new AtomicInteger(-1);
-        }
-
-        public int nextPartition() {
-            int nextPartition = -1;
-            if (!partitions.isEmpty()) {
-                int nextValue = counter.incrementAndGet();
-                int index = Utils.toPositive(nextValue) % partitions.size();
-                nextPartition = partitions.get(index).partition();
-            } else {
-                StringBuilder message = new StringBuilder();
-                message.append("The bucket '%s' doesn't have any partitions ");
-                message.append("assigned. This means that any record meant for ");
-                message.append("this bucket will be lost. Please adjust the ");
-                message.append("allocation configuration and/or increase the ");
-                message.append("number of partitions for the topic '%s' to ");
-                message.append("avoid losing records.");
-                log.warn(message.toString(), getBucketName(), config.topic());
-            }
-            return nextPartition;
-        }
-
-        public void clearExistingPartitions() {
-            getPartitions().clear();
-        }
-
-        public void addPartition(int partition) {
-            getPartitions().add(new TopicPartition(
-                config.topic(), partition));
-        }
-
-        public void decrementCounter() {
-            counter.decrementAndGet();
-        }
-
-        @Override
-        public int compareTo(Bucket bucket) {
-            int result = 0;
-            if (getAllocation() < bucket.getAllocation()) {
-                result = 1;
-            } else if (getAllocation() > bucket.getAllocation()) {
-                result = -1;
-            }
-            return result;
-        }
-
-        public String getBucketName() {
-            return bucketName;
-        }
-
-        public int getAllocation() {
-            return allocation;
-        }
-
-        public List<TopicPartition> getPartitions() {
-            return partitions;
-        }
-
     }
 
     @Override

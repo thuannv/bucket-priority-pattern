@@ -36,6 +36,8 @@ import org.apache.kafka.common.errors.InvalidConfigurationException;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 
+import static com.riferrei.kafka.core.Bucket.size;
+
 public class BucketPriorityAssignor extends CooperativeStickyAssignor implements Configurable {
 
     private BucketPriorityConfig config;
@@ -197,61 +199,19 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         }
         // Finally assign the available partitions to buckets
         int partition = -1;
+        TopicPartition topicPartition = null;
         bucketAssign: for (String bucketName : buckets.keySet()) {
             Bucket bucket = buckets.get(bucketName);
             int bucketSize = layout.get(bucketName);
-            bucket.clearExistingPartitions();
+            bucket.getPartitions().clear();
             for (int i = 0; i < bucketSize; i++) {
-                bucket.addPartition(++partition);
+                topicPartition = new TopicPartition(config.topic(), ++partition);
+                bucket.getPartitions().add(topicPartition);
                 if (partition == partitions.size() - 1) {
                     break bucketAssign;
                 }
             }
         }
-    }
-
-    private int size(int allocation, int partitionCount) {
-        return Math.round(((float) allocation / 100) * partitionCount);
-    }
-
-    private class Bucket implements Comparable<Bucket> {
-
-        private int allocation;
-        private List<TopicPartition> partitions;
-
-        public Bucket(int allocation) {
-            this.allocation = allocation;
-            partitions = new ArrayList<>();
-        }
-
-        public void clearExistingPartitions() {
-            getPartitions().clear();
-        }
-
-        public void addPartition(int partition) {
-            getPartitions().add(new TopicPartition(
-                config.topic(), partition));
-        }
-
-        @Override
-        public int compareTo(Bucket bucket) {
-            int result = 0;
-            if (getAllocation() < bucket.getAllocation()) {
-                result = 1;
-            } else if (getAllocation() > bucket.getAllocation()) {
-                result = -1;
-            }
-            return result;
-        }
-
-        public int getAllocation() {
-            return allocation;
-        }
-
-        public List<TopicPartition> getPartitions() {
-            return partitions;
-        }
-
     }
     
 }
