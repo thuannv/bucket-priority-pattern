@@ -116,17 +116,16 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // consumers that are using a bucket priority
         // strategy. The remaining assignments should
         // be used as they are.
-        Map<String, List<TopicPartition>> customAssignments = new LinkedHashMap<>();
+        Map<String, List<TopicPartition>> bucketAssignments = new LinkedHashMap<>();
         Map<String, List<String>> consumersPerBucket = new LinkedHashMap<>();
         for (String consumer : assignments.keySet()) {
             Subscription subscription = subscriptions.get(consumer);
             if (subscription.topics().contains(config.topic())) {
+                bucketAssignments.put(consumer, new ArrayList<>());
                 ByteBuffer userData = subscription.userData();
                 Charset charset = Charset.forName("UTF-8");
                 String bucket = charset.decode(userData).toString();
                 if (buckets.containsKey(bucket)) {
-                    customAssignments.put(consumer, assignments.get(consumer));
-                    assignments.remove(consumer);
                     if (consumersPerBucket.containsKey(bucket)) {
                         List<String> consumers = consumersPerBucket.get(bucket);
                         consumers.add(consumer);
@@ -134,13 +133,9 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
                         consumersPerBucket.put(bucket, Arrays.asList(consumer));
                     }
                 }
+                assignments.remove(consumer);
             }
         }
-        // Clear whatever assignments has been made
-        // by super. The new assignments need to be
-        // based on the allocation of each bucket.
-        customAssignments.entrySet().stream()
-            .forEach(entry -> entry.getValue().clear());
         // Evenly distribute the partitions across the
         // available consumers in a per-bucket basis.
         AtomicInteger counter = new AtomicInteger(-1);
@@ -153,12 +148,12 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
                     int nextValue = counter.incrementAndGet();
                     int index = Utils.toPositive(nextValue) % consumers.size();
                     String consumer = consumers.get(index);
-                    customAssignments.get(consumer).add(partition);
+                    bucketAssignments.get(consumer).add(partition);
                 }
             }
         }
         // Finally merge the two assignments back
-        assignments.putAll(customAssignments);
+        assignments.putAll(bucketAssignments);
         return assignments;
     }
 
