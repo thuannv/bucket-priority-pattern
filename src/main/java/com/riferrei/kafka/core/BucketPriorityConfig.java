@@ -23,18 +23,14 @@ import java.util.Map;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
-public class BucketPriorityPartitionerConfig extends AbstractConfig {
+public class BucketPriorityConfig extends AbstractConfig {
 
-    public BucketPriorityPartitionerConfig(Map<?, ?> originals) {
+    public BucketPriorityConfig(Map<?, ?> originals) {
         super(CONFIG, originals);
     }
 
     public String topic() {
         return getString(TOPIC_CONFIG);
-    }
-
-    public String delimiter() {
-        return getString(DELIMITER_CONFIG);
     }
 
     public List<String> buckets() {
@@ -43,6 +39,14 @@ public class BucketPriorityPartitionerConfig extends AbstractConfig {
 
     public List<String> allocation() {
         return getList(ALLOCATION_CONFIG);
+    }
+
+    public String bucket() {
+        return getString(BUCKET_CONFIG);
+    }
+
+    public String delimiter() {
+        return getString(DELIMITER_CONFIG);
     }
 
     public FallbackAction fallbackAction() {
@@ -56,6 +60,9 @@ public class BucketPriorityPartitionerConfig extends AbstractConfig {
     public static final String TOPIC_CONFIG_DOC = "Which topic should have its partitions mapped to buckets.";
     public static final String BUCKETS_CONFIG = "bucket.priority.buckets";
     public static final String BUCKETS_CONFIG_DOC = "List of the bucket names.";
+    public static final String BUCKET_CONFIG = "bucket.priority.bucket";
+    public static final String BUCKET_CONFIG_DOC = "Bucket that the consumer will be assigned to.";
+    public static final String BUCKET_CONFIG_DEFAULT = "";
     public static final String DELIMITER_CONFIG = "bucket.priority.delimiter";
     public static final String DELIMITER_CONFIG_DOC = "Delimiter used to look up the bucket name in the key.";
     public static final String DELIMITER_CONFIG_DEFAULT = "-";
@@ -75,11 +82,6 @@ public class BucketPriorityPartitionerConfig extends AbstractConfig {
                 ConfigDef.Type.STRING,
                 ConfigDef.Importance.HIGH,
                 TOPIC_CONFIG_DOC)
-            .define(DELIMITER_CONFIG,
-                ConfigDef.Type.STRING,
-                DELIMITER_CONFIG_DEFAULT,
-                ConfigDef.Importance.LOW,
-                DELIMITER_CONFIG_DOC)
             .define(BUCKETS_CONFIG,
                 ConfigDef.Type.LIST,
                 ConfigDef.Importance.HIGH,
@@ -88,6 +90,16 @@ public class BucketPriorityPartitionerConfig extends AbstractConfig {
                 ConfigDef.Type.LIST,
                 ConfigDef.Importance.HIGH,
                 ALLOCATION_CONFIG_DOC)
+            .define(BUCKET_CONFIG,
+                ConfigDef.Type.STRING,
+                BUCKET_CONFIG_DEFAULT,
+                ConfigDef.Importance.HIGH,
+                BUCKET_CONFIG_DOC)
+            .define(DELIMITER_CONFIG,
+                ConfigDef.Type.STRING,
+                DELIMITER_CONFIG_DEFAULT,
+                ConfigDef.Importance.LOW,
+                DELIMITER_CONFIG_DOC)
             .define(FALLBACK_ACTION_CONFIG,
                 ConfigDef.Type.STRING,
                 FALLBACK_ACTION_CONFIG_DEFAULT,

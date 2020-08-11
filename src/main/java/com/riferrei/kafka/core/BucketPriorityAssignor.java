@@ -17,36 +17,35 @@
 
 package com.riferrei.kafka.core;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.kafka.common.Cluster;
-import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.clients.producer.Partitioner;
-import org.apache.kafka.clients.producer.RoundRobinPartitioner;
-import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
 import org.apache.kafka.common.utils.Utils;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+public class BucketPriorityAssignor extends CooperativeStickyAssignor implements Configurable {
 
-public class BucketPriorityPartitioner implements Partitioner {
-
-    private final Logger log = LoggerFactory.getLogger(BucketPriorityPartitioner.class);
-
-    private Partitioner fallbackPartitioner;
     private BucketPriorityConfig config;
-    private ThreadLocal<String> lastBucket;
     private Map<String, Bucket> buckets;
     private int lastPartitionCount;
+
+    @Override
+    public String name() {
+        return "bucket-priority";
+    }
 
     @Override
     public void configure(Map<String, ?> configs) {
@@ -66,20 +65,10 @@ public class BucketPriorityPartitioner implements Partitioner {
             throw new InvalidConfigurationException("The bucket allocation " +
                 "is incorrect. The sum of all buckets needs to be 100.");
         }
-        switch (config.fallbackAction()) {
-            case DEFAULT:
-                fallbackPartitioner = new DefaultPartitioner();
-                break;
-            case ROUNDROBIN:
-                fallbackPartitioner = new RoundRobinPartitioner();
-                break;
-            default:
-        }
-        lastBucket = new ThreadLocal<>();
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
             String bucketName = config.buckets().get(i).trim();
-            buckets.put(bucketName, new Bucket(bucketName, bucketAlloc.get(i)));
+            buckets.put(bucketName, new Bucket(bucketAlloc.get(i)));
         }
         // Sort the buckets with higher allocation to come
         // first than the others. This will help later during
@@ -95,66 +84,84 @@ public class BucketPriorityPartitioner implements Partitioner {
     }
 
     @Override
-    public int partition(String topic, Object key, byte[] keyBytes,
-        Object value, byte[] valueBytes, Cluster cluster) {
-        int partition = -1;
-        if (config.topic() != null && config.topic().equals(topic)) {
-            if (key != null && key instanceof String) {
-                String keyValue = (String) key;
-                String[] keyValueParts = keyValue.split(config.delimiter());
-                if (keyValueParts.length >= 1) {
-                    String bucketName = keyValueParts[0].trim();
-                    if (buckets.containsKey(bucketName)) {
-                        lastBucket.set(bucketName);
-                        partition = getPartition(bucketName, cluster);
-                    } else {
-                        partition = fallback(topic, key, keyBytes,
-                            value, valueBytes, cluster);
-                    }
-                }
-            } else {
-                partition = fallback(topic, key, keyBytes,
-                    value, valueBytes, cluster);
+    public ByteBuffer subscriptionUserData(Set<String> topics) {
+        ByteBuffer userData = null;
+        for (String topic : topics) {
+            if (topic.equals(config.topic())) {
+                String bucket = config.bucket();
+                Charset charset = Charset.forName("UTF-8");
+                userData = charset.encode(bucket);
+                break;
             }
-        } else {
-            partition = fallback(topic, key, keyBytes,
-                value, valueBytes, cluster);
         }
-        return partition;
+        return userData;
     }
 
-    private int fallback(String topic, Object key, byte[] keyBytes,
-        Object value, byte[] valueBytes, Cluster cluster) {
-        int partition = -1;
-        switch (config.fallbackAction()) {
-            case DEFAULT:
-                partition = fallbackPartitioner.partition(topic,
-                    key, keyBytes, value, valueBytes, cluster);
-                break;
-            case ROUNDROBIN:
-                partition = fallbackPartitioner.partition(topic,
-                    key, keyBytes, value, valueBytes, cluster);
-                break;
-            case DISCARD:
-                break;
-        }
-        return partition;
-    }
-
-    private int getPartition(String bucketName, Cluster cluster) {
-        int partitionCount = cluster.partitionCountForTopic(config.topic());
+    @Override
+    public Map<String, List<TopicPartition>> assign(Map<String, Integer> partitionsPerTopic,
+        Map<String, Subscription> subscriptions) {
+        int partitionCount = partitionsPerTopic.get(config.topic());
         // Check if the # of partitions has changed
         // and trigger an update if that happened.
         if (lastPartitionCount != partitionCount) {
-            updateBucketPartitions(cluster);
+            updateBucketPartitions(partitionCount);
             lastPartitionCount = partitionCount;
         }
-        Bucket bucket = buckets.get(bucketName);
-        return bucket.nextPartition();
+        // Create a first version of the assignments
+        // using the strategy inherited from super.
+        Map<String, List<TopicPartition>> assignments = super.assign(partitionsPerTopic, subscriptions);
+        // Remove from the current assignments all the
+        // consumers that are using a bucket priority
+        // strategy. The remaining assignments should
+        // be used as they are.
+        Map<String, List<TopicPartition>> customAssignments = new LinkedHashMap<>();
+        Map<String, List<String>> consumersPerBucket = new LinkedHashMap<>();
+        for (String consumer : assignments.keySet()) {
+            Subscription subscription = subscriptions.get(consumer);
+            if (subscription.topics().contains(config.topic())) {
+                ByteBuffer userData = subscription.userData();
+                Charset charset = Charset.forName("UTF-8");
+                String bucket = charset.decode(userData).toString();
+                if (buckets.containsKey(bucket)) {
+                    customAssignments.put(consumer, assignments.get(consumer));
+                    assignments.remove(consumer);
+                    if (consumersPerBucket.containsKey(bucket)) {
+                        List<String> consumers = consumersPerBucket.get(bucket);
+                        consumers.add(consumer);
+                    } else {
+                        consumersPerBucket.put(bucket, Arrays.asList(consumer));
+                    }
+                }
+            }
+        }
+        // Clear whatever assignments has been made
+        // by super. The new assignments need to be
+        // based on the allocation of each bucket.
+        customAssignments.entrySet().stream()
+            .forEach(entry -> entry.getValue().clear());
+        // Evenly distribute the partitions across the
+        // available consumers in a per-bucket basis.
+        AtomicInteger counter = new AtomicInteger(-1);
+        for (String bucketName : buckets.keySet()) {
+            Bucket bucket = buckets.get(bucketName);
+            List<String> consumers = consumersPerBucket.get(bucketName);
+            // Check if the bucket has consumers available...
+            if (consumers != null && !consumers.isEmpty()) {
+                for (TopicPartition partition : bucket.getPartitions()) {
+                    int nextValue = counter.incrementAndGet();
+                    int index = Utils.toPositive(nextValue) % consumers.size();
+                    String consumer = consumers.get(index);
+                    customAssignments.get(consumer).add(partition);
+                }
+            }
+        }
+        // Finally merge the two assignments back
+        assignments.putAll(customAssignments);
+        return assignments;
     }
 
-    private void updateBucketPartitions(Cluster cluster) {
-        List<PartitionInfo> partitions = cluster.partitionsForTopic(config.topic());
+    private void updateBucketPartitions(int partitionCount) {
+        List<TopicPartition> partitions = super.partitions(config.topic(), partitionCount);
         if (partitions.size() < buckets.size()) {
             StringBuilder message = new StringBuilder();
             message.append("The number of partitions available for the topic '");
@@ -165,7 +172,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         }
         // Sort partitions in ascendent order
         partitions = partitions.stream()
-            .sorted(Comparator.comparing(PartitionInfo::partition))
+            .sorted(Comparator.comparing(TopicPartition::partition))
             .collect(Collectors.toList());
         // Design the layout of the distribution
         int distribution = 0;
@@ -209,35 +216,12 @@ public class BucketPriorityPartitioner implements Partitioner {
 
     private class Bucket implements Comparable<Bucket> {
 
-        private String bucketName;
         private int allocation;
         private List<TopicPartition> partitions;
-        private AtomicInteger counter;
 
-        public Bucket(String bucketName, int allocation) {
-            this.bucketName = bucketName;
+        public Bucket(int allocation) {
             this.allocation = allocation;
             partitions = new ArrayList<>();
-            counter = new AtomicInteger(-1);
-        }
-
-        public int nextPartition() {
-            int nextPartition = -1;
-            if (!partitions.isEmpty()) {
-                int nextValue = counter.incrementAndGet();
-                int index = Utils.toPositive(nextValue) % partitions.size();
-                nextPartition = partitions.get(index).partition();
-            } else {
-                StringBuilder message = new StringBuilder();
-                message.append("The bucket '%s' doesn't have any partitions ");
-                message.append("assigned. This means that any record meant for ");
-                message.append("this bucket will be lost. Please adjust the ");
-                message.append("allocation configuration and/or increase the ");
-                message.append("number of partitions for the topic '%s' to ");
-                message.append("avoid losing records.");
-                log.warn(message.toString(), getBucketName(), config.topic());
-            }
-            return nextPartition;
         }
 
         public void clearExistingPartitions() {
@@ -247,10 +231,6 @@ public class BucketPriorityPartitioner implements Partitioner {
         public void addPartition(int partition) {
             getPartitions().add(new TopicPartition(
                 config.topic(), partition));
-        }
-
-        public void decrementCounter() {
-            counter.decrementAndGet();
         }
 
         @Override
@@ -264,10 +244,6 @@ public class BucketPriorityPartitioner implements Partitioner {
             return result;
         }
 
-        public String getBucketName() {
-            return bucketName;
-        }
-
         public int getAllocation() {
             return allocation;
         }
@@ -276,26 +252,6 @@ public class BucketPriorityPartitioner implements Partitioner {
             return partitions;
         }
 
-    }
-
-    @Override
-    public void onNewBatch(String topic, Cluster cluster, int prevPartition) {
-        // With the introduction of KIP-480 to enhance record production
-        // throughput Kafka's API calls the partition() method twice resulting
-        // in partitions being skipped. More information about this here:
-        // https://issues.apache.org/jira/browse/KAFKA-9965
-        // The temporary solution is to use the callback method 'onNewBatch'
-        // to decrease the counter to stabilized the round-robin logic.
-        String bucketName = lastBucket.get();
-        Bucket bucket = buckets.get(bucketName);
-        if (bucket != null) {
-            bucket.decrementCounter();
-        }
-        lastBucket.remove();
-    }
-
-    @Override
-    public void close() {
     }
     
 }

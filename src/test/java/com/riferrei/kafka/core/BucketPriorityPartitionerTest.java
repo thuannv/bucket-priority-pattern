@@ -39,17 +39,17 @@ public class BucketPriorityPartitionerTest {
             });
             // Check if the buckets configuration is missing
             assertThrows(ConfigException.class, () -> {
-                configs.put(BucketPriorityPartitionerConfig.TOPIC_CONFIG, "test");
+                configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
                 partitioner.configure(configs);
             });
             // Check if the allocation configuration is missing
             assertThrows(ConfigException.class, () -> {
-                configs.put(BucketPriorityPartitionerConfig.BUCKETS_CONFIG, "Platinum, Gold");
+                configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
                 partitioner.configure(configs);
             });
             // Check if complete configuration is gonna be enough
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
                 partitioner.configure(configs);
             });
         }
@@ -60,13 +60,13 @@ public class BucketPriorityPartitionerTest {
         final Map<String, String> configs = new HashMap<>();
         try (BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner()) {
             assertThrows(InvalidConfigurationException.class, () -> {
-                configs.put(BucketPriorityPartitionerConfig.TOPIC_CONFIG, "test");
-                configs.put(BucketPriorityPartitionerConfig.BUCKETS_CONFIG, "Platinum, Gold");
-                configs.put(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70");
+                configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
+                configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70");
                 partitioner.configure(configs);
             });
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
                 partitioner.configure(configs);
             });
         }
@@ -77,13 +77,13 @@ public class BucketPriorityPartitionerTest {
         final Map<String, String> configs = new HashMap<>();
         try (BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner()) {
             assertThrows(InvalidConfigurationException.class, () -> {
-                configs.put(BucketPriorityPartitionerConfig.TOPIC_CONFIG, "test");
-                configs.put(BucketPriorityPartitionerConfig.BUCKETS_CONFIG, "Platinum, Gold");
-                configs.put(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70, 20");
+                configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
+                configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 20");
                 partitioner.configure(configs);
             });
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityPartitionerConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
                 partitioner.configure(configs);
             });
         }
