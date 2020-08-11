@@ -18,7 +18,7 @@ Since the key created by the producer contains the string `Platinum` the partiti
 The partitioner distributes the records within each bucket using a round robin algorithm to maximize consumption parallelism.
 
 The usage of this partitioner distributes records into buckets that might have different priorities to the business, and if the consumers also rely on the same logic they can coordinate themselves to process certain buckets before others to implement the record prioritization.
-You can use the project [Bucket Priority Assignor](https://github.com/riferrei/bucket-priority-assignor) to ensure that your consumers will be assigned to the topic partitions using the bucket priority logic.
+You can use the [Bucket Priority Assignor](https://github.com/riferrei/bucket-priority-assignor) to ensure that your consumers will be assigned to the topic partitions using the bucket priority logic.
 
 ## Building the project
 
