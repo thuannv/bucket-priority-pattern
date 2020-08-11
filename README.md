@@ -14,7 +14,7 @@ In runtime the partitioner relies on data avaiable on each record key to decide 
 In the example above the topic partitions are grouped into buckets.
 The `Platinum` bucket has `70%` of the allocation whereas the `Gold` bucket has `30%`.
 This means that for a topic that contains `six` partitions, `four` of them will be associated to the `Platinum` bucket and `two` will be associated to the `Gold` bucket.
-Since the key created by the producer contains the string `Platinum` the partitioner will decide that the record should be sent to one of the partitions belonging to the bucket `Platinum`, therefore leveraging one of the partitions assigned to that bucket.
+Since the key created by the producer contains the string `Platinum` the partitioner will decide that the record should be sent to one of the partitions belonging to the bucket `Platinum`.
 The partitioner distributes the records within each bucket using a round robin algorithm to maximize consumption parallelism.
 
 The usage of this partitioner distributes records into buckets that might have different priorities to the business, and if the consumers also rely on the same logic they can coordinate themselves to process certain buckets before others to implement the record prioritization.
