@@ -207,7 +207,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         // in partitions being skipped. More information about this here:
         // https://issues.apache.org/jira/browse/KAFKA-9965
         // The temporary solution is to use the callback method 'onNewBatch'
-        // to decrease the counter to stabilized the round-robin logic.
+        // to decrease the counter to stabilize the round-robin logic.
         String bucketName = lastBucket.get();
         Bucket bucket = buckets.get(bucketName);
         if (bucket != null) {

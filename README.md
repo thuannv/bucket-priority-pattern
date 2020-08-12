@@ -48,9 +48,6 @@ After installing these dependencies, execute the following command:
 mvn clean package
 ```
 
-Keep in mind that this command also force the tests to be executed. Some of the tests rely on the [TestContainers](https://www.testcontainers.org/) framework and therefore -- you will need to have a functional Docker installation in your machine.
-If this is not the case or you just want the connector then execute the command with the parameter `-DskipTests`.
-
 ## Using the partitioner
 
 To use the `BucketPriorityPartitioner` in your producer you need to register it in the configuration.

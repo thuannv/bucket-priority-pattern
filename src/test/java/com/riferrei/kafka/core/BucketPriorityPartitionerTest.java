@@ -17,12 +17,21 @@
 
 package com.riferrei.kafka.core;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.kafka.clients.producer.MockProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.Cluster;
+import org.apache.kafka.common.Node;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
-import org.junit.Test;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -88,5 +97,28 @@ public class BucketPriorityPartitionerTest {
             });
         }
     }
-    
+
+    @Test
+    public void checkMinNumberPartitions() {
+        final String topic = "orders";
+        Map<String, String> configs = new HashMap<>();
+        configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
+        // Using two buckets implies having at least two partitions...
+        configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+        BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
+        partitioner.configure(configs);
+        // Create a topic with only one partition...
+        PartitionInfo partitionInfo = new PartitionInfo(topic, 0, null, null, null);
+        List<PartitionInfo> partitions = List.of(partitionInfo);
+        Cluster cluster = new Cluster("test", new ArrayList<Node>(),
+            partitions, Set.of(), Set.of());
+        try (MockProducer<String, String> producer = new MockProducer<>(cluster, true,
+            partitioner, new StringSerializer(), new StringSerializer())) {
+            assertThrows(InvalidConfigurationException.class, () -> {
+                producer.send(new ProducerRecord<String, String>(topic, "Platinum-001", "value"));
+            });
+        }
+    }
+
 }
