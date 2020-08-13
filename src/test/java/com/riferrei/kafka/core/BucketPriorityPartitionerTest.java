@@ -140,17 +140,44 @@ public class BucketPriorityPartitionerTest {
             partitions, Set.of(), Set.of());
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+            ProducerRecord<String, String> record = null;
             List<Integer> chosenPartitions = new ArrayList<>();
-            // Produce 10 different records
-            for (int i = 0; i < 10; i++) {
-                ProducerRecord<String, String> record =
-                    // Creating a record without key to force the fallback...
-                    new ProducerRecord<String, String>(topic, null, "value");
-                producer.send(record, (metadata, exception) -> {
+            // Produce a record with a wrong topic to force fallback...
+            record = new ProducerRecord<String, String>("customers", "Platinum", "value");
+            producer.send(record, (metadata, exception) -> {
+                if (metadata.topic().equals(topic)) {
+                    // This is not supposed to happen anyway...
                     chosenPartitions.add(metadata.partition());
-                });
-            }
-            assertEquals(List.of(0,1,0,1,0,1,0,1,0,1), chosenPartitions);
+                }
+            });
+            // Produce a record without a key to force fallback...
+            record = new ProducerRecord<String, String>(topic, null, "value");
+            producer.send(record, (metadata, exception) -> {
+                chosenPartitions.add(metadata.partition());
+            });
+            // Using a key without a valid bucket to force fallback...
+            record = new ProducerRecord<String, String>(topic, "Wrong", "value");
+            producer.send(record, (metadata, exception) -> {
+                chosenPartitions.add(metadata.partition());
+            });
+            // Now produce three records with valid topic and key...
+            record = new ProducerRecord<String, String>(topic, "Platinum-001", "value");
+            producer.send(record, (metadata, exception) -> {
+                chosenPartitions.add(metadata.partition());
+            });
+            record = new ProducerRecord<String, String>(topic, "Platinum-002", "value");
+            producer.send(record, (metadata, exception) -> {
+                chosenPartitions.add(metadata.partition());
+            });
+            record = new ProducerRecord<String, String>(topic, "Gold-001", "value");
+            producer.send(record, (metadata, exception) -> {
+                chosenPartitions.add(metadata.partition());
+            });
+            // The expected output is:
+            // - First two records are spread over the 2 partitions
+            // - Two records need to be sent to partition 0 (Platinum)
+            // - One record need to be sent to partition 1 (Gold)
+            assertEquals(List.of(0, 1, 0, 0, 1), chosenPartitions);
         }
     }
 
@@ -193,6 +220,9 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+            // The expected output is:
+            // - The first 5 records need to be discarded
+            // - The last 5 records need to end up on partition 0 (Platinum)
             assertEquals(List.of(0, 0, 0, 0, 0), chosenPartitions);
         }
     }
