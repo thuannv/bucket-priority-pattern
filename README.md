@@ -10,6 +10,7 @@ In Kafka the smallest unit of read, write, and replication are partitions.
 Partitions play a key role in how Kafka implements elasticity because they represent the parts of a topic that are spread over the cluster, as well as how Kafka implements fault-tolerance because each part can have replicas and these replicas are also spread over the cluster.
 However, when developers write code to handle partitions explicitely they end up writing a rather more complex code, and often they have to give up of some facilities that the Kafka architecture provides such as automatic rebalancing of consumers when new partitions are added and/or when a group leader fails.
 This becames even more important when developers are interacting with Kafka via frameworks like [Kafka Connect](https://kafka.apache.org/documentation/#connect) and [Kafka Streams](https://kafka.apache.org/documentation/streams/) that by design don't expect them to handle partitions directly.
+
 This projects addresses record prioritization by grouping partitions into simpler abstractions called buckets that express priority given their size.
 Bigger buckets means higher priority and smaller buckets means less priority.
 The project also addresses code simplicity by providing a way to do all of this with the pluggable architecture of Kafka.
