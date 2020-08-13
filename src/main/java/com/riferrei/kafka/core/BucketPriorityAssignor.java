@@ -19,6 +19,7 @@ package com.riferrei.kafka.core;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -91,7 +92,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         for (String topic : topics) {
             if (topic.equals(config.topic())) {
                 String bucket = config.bucket();
-                Charset charset = Charset.forName("UTF-8");
+                Charset charset = StandardCharsets.UTF_8;
                 userData = charset.encode(bucket);
                 break;
             }
@@ -123,7 +124,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
             if (subscription.topics().contains(config.topic())) {
                 bucketAssignments.put(consumer, new ArrayList<>());
                 ByteBuffer userData = subscription.userData();
-                Charset charset = Charset.forName("UTF-8");
+                Charset charset = StandardCharsets.UTF_8;
                 String bucket = charset.decode(userData).toString();
                 if (buckets.containsKey(bucket)) {
                     if (consumersPerBucket.containsKey(bucket)) {
@@ -139,12 +140,11 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // Evenly distribute the partitions across the
         // available consumers in a per-bucket basis.
         AtomicInteger counter = new AtomicInteger(-1);
-        for (String bucketName : buckets.keySet()) {
-            Bucket bucket = buckets.get(bucketName);
-            List<String> consumers = consumersPerBucket.get(bucketName);
+        for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
+            List<String> consumers = consumersPerBucket.get(bucket.getKey());
             // Check if the bucket has consumers available...
             if (consumers != null && !consumers.isEmpty()) {
-                for (TopicPartition partition : bucket.getPartitions()) {
+                for (TopicPartition partition : bucket.getValue().getPartitions()) {
                     int nextValue = counter.incrementAndGet();
                     int index = Utils.toPositive(nextValue) % consumers.size();
                     String consumer = consumers.get(index);
@@ -158,7 +158,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
     }
 
     private void updateBucketPartitions(int partitionCount) {
-        List<TopicPartition> partitions = super.partitions(config.topic(), partitionCount);
+        List<TopicPartition> partitions = partitions(config.topic(), partitionCount);
         if (partitions.size() < buckets.size()) {
             StringBuilder message = new StringBuilder();
             message.append("The number of partitions available for the topic '");
@@ -174,10 +174,10 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // Design the layout of the distribution
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
-        for (String bucketName : buckets.keySet()) {
-            Bucket bucket = buckets.get(bucketName);
-            int bucketSize = size(bucket.getAllocation(), partitions.size());
-            layout.put(bucketName, bucketSize);
+        for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
+            int allocation = bucket.getValue().getAllocation();
+            int bucketSize = size(allocation, partitions.size());
+            layout.put(bucket.getKey(), bucketSize);
             distribution += bucketSize;
         }
         // Check if there are unassigned partitions.

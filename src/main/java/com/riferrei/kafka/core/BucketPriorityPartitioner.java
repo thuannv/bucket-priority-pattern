@@ -94,7 +94,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         Object value, byte[] valueBytes, Cluster cluster) {
         int partition = -1;
         if (config.topic() != null && config.topic().equals(topic)) {
-            if (key != null && key instanceof String) {
+            if (key instanceof String) {
                 String keyValue = (String) key;
                 String[] keyValueParts = keyValue.split(config.delimiter());
                 if (keyValueParts.length >= 1) {
@@ -165,10 +165,10 @@ public class BucketPriorityPartitioner implements Partitioner {
         // Design the layout of the distribution
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
-        for (String bucketName : buckets.keySet()) {
-            Bucket bucket = buckets.get(bucketName);
-            int bucketSize = size(bucket.getAllocation(), partitions.size());
-            layout.put(bucketName, bucketSize);
+        for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
+            int allocation = bucket.getValue().getAllocation();
+            int bucketSize = size(allocation, partitions.size());
+            layout.put(bucket.getKey(), bucketSize);
             distribution += bucketSize;
         }
         // Check if there are unassigned partitions.
@@ -178,21 +178,20 @@ public class BucketPriorityPartitioner implements Partitioner {
         int remaining = partitions.size() - distribution;
         Iterator<String> iter = buckets.keySet().iterator();
         while (remaining > 0) {
-            String bucketName = iter.next();
-            int bucketSize = layout.get(bucketName);
-            layout.put(bucketName, ++bucketSize);
+            String bucket = iter.next();
+            int bucketSize = layout.get(bucket);
+            layout.put(bucket, ++bucketSize);
             remaining--;
         }
         // Finally assign the available partitions to buckets
         int partition = -1;
         TopicPartition topicPartition = null;
-        bucketAssign: for (String bucketName : buckets.keySet()) {
-            Bucket bucket = buckets.get(bucketName);
-            int bucketSize = layout.get(bucketName);
-            bucket.getPartitions().clear();
+        bucketAssign: for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
+            int bucketSize = layout.get(bucket.getKey());
+            bucket.getValue().getPartitions().clear();
             for (int i = 0; i < bucketSize; i++) {
                 topicPartition = new TopicPartition(config.topic(), ++partition);
-                bucket.getPartitions().add(topicPartition);
+                bucket.getValue().getPartitions().add(topicPartition);
                 if (partition == partitions.size() - 1) {
                     break bucketAssign;
                 }
@@ -218,6 +217,7 @@ public class BucketPriorityPartitioner implements Partitioner {
 
     @Override
     public void close() {
+        // Nothing to close
     }
     
 }
