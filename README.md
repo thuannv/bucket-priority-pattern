@@ -1,17 +1,18 @@
 # Bucket Priority
 
 Implement record prioritization in [Apache Kafka](https://kafka.apache.org) is often a hard task because Kafka doesn't support broker-level reordering of records like some messaging technologies do.
-Some developers see this as a limitation but the reality is that it isn't because Kafka is not supposed to allow record reordering in the first place.
-In a distributed commit log like Kafka records are immutable and so their ordering within the topic partitions.
-Nevertheless, this doesn't change the fact the developers would like to implement record prioritization in Kafka.
+Though some developers see this as a limitation the reality is that it isn't because Kafka is not supposed to allow record reordering in the first place.
+Kafka is a distributed [commit log](https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying) and therefore records are immutable and so their ordering within partitions.
+Nevertheless, this doesn't change the fact the developers may need to implement record prioritization in Kafka.
 
-This project aims to address this problem while still proving developers the ability to keep their code simple.
+This project aims to address this problem while still proving a way to keep the implementation code simple.
 In Kafka the smallest unit of read, write, and replication are partitions.
 Partitions play a key role in how Kafka implements elasticity because they represent the parts of a topic that are spread over the cluster, as well as how Kafka implements fault-tolerance because each part can have replicas and these replicas are also spread over the cluster.
-However, when developers write code to handle partitions explicitely they end up writing a much more complex code, and often they have to give up of some facilities that the Kafka architecture provides such as automatic rebalancing of consumers when new partitions are added and/or when a group leader fails.
-This becames even more important if developers are interacting with Kafka via frameworks like [Kafka Connect](https://kafka.apache.org/documentation/#connect) and [Kafka Streams](https://kafka.apache.org/documentation/streams/) that by design don't expect them to handle partitions directly.
-This projects addresses record prioritization by grouping partitions into simpler abstractions called buckets that can be used to implement priority depending of how big or small they are.
-And the project addresses code simplicity by providing all of this with the pluggable architecture of Kafka.
+However, when developers write code to handle partitions explicitely they end up writing a rather more complex code, and often they have to give up of some facilities that the Kafka architecture provides such as automatic rebalancing of consumers when new partitions are added and/or when a group leader fails.
+This becames even more important when developers are interacting with Kafka via frameworks like [Kafka Connect](https://kafka.apache.org/documentation/#connect) and [Kafka Streams](https://kafka.apache.org/documentation/streams/) that by design don't expect them to handle partitions directly.
+This projects addresses record prioritization by grouping partitions into simpler abstractions called buckets that express priority given their size.
+Bigger buckets means higher priority and smaller buckets means less priority.
+The project also addresses code simplicity by providing a way to do all of this with the pluggable architecture of Kafka.
 
 Let's understand how this works with an example.
 
