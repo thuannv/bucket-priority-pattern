@@ -18,6 +18,8 @@
 package com.riferrei.kafka.core;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +121,6 @@ public class BucketPriorityAssignorTest {
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, bucketTopic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
-        configs.put(BucketPriorityConfig.BUCKET_CONFIG, "B1");
         BucketPriorityAssignor assignor = new BucketPriorityAssignor();
         assignor.configure(configs);
         // Create the partitions and the subscriptions
@@ -145,6 +146,70 @@ public class BucketPriorityAssignorTest {
         // be greather than zero.
         assertEquals(4, assignments.size());
         assignments.values().forEach(v -> assertTrue(v.size() > 0));
+    }
+
+    @Test
+    public void checkPerBucketConsumerAssignment() {
+        final String bucketTopic = "bucketTopic";
+        final Map<String, String> configs = new HashMap<>();
+        configs.put(BucketPriorityConfig.TOPIC_CONFIG, bucketTopic);
+        configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
+        BucketPriorityAssignor assignor = new BucketPriorityAssignor();
+        assignor.configure(configs);
+        // Create the partitions and the subscriptions
+        Map<String, Integer> partitionsPerTopic = Map.of(bucketTopic, 10);
+        Map<String, ConsumerPartitionAssignor.Subscription> subscriptions = new HashMap<>();
+        int count = 0;
+        // Create 8 consumers for the B1 bucket
+        for (int i = 0; i < 8; i++) {
+            subscriptions.put(String.format("consumer-%d", count++),
+                new ConsumerPartitionAssignor.Subscription(
+                    List.of(bucketTopic), StandardCharsets.UTF_8.encode("B1")));
+        }
+        // Create 2 consumers for the B2 bucket
+        for (int i = 0; i < 2; i++) {
+            subscriptions.put(String.format("consumer-%d", count++),
+                new ConsumerPartitionAssignor.Subscription(
+                    List.of(bucketTopic), StandardCharsets.UTF_8.encode("B2")));
+        }
+        // Execute the assignor
+        Map<String, List<TopicPartition>> assignments =
+            assignor.assign(partitionsPerTopic, subscriptions);
+        // The expected output is that each of the 10 consumers
+        // will have assignments and their assignments need to
+        // be greather than zero.
+        assertEquals(10, assignments.size());
+        assignments.values().forEach(v -> assertTrue(v.size() > 0));
+        // Also consumer-0 to consumer-7 should be working
+        // on B1 while consumer-8 and consumer-9 should be
+        // working on B2.
+        final List<String> b1Consumers = new ArrayList<>();
+        final List<String> b2Consumers = new ArrayList<>();
+        assignments.entrySet().forEach(assignment -> {
+            String consumer = assignment.getKey();
+            assignment.getValue().stream().forEach(tp -> {
+                if (tp.partition() >= 0 && tp.partition() <= 7) {
+                    b1Consumers.add(consumer);
+                }
+                if (tp.partition() >= 8 && tp.partition() <= 9) {
+                    b2Consumers.add(consumer);
+                }
+            });
+        });
+        count = 0;
+        List<String> expectedB1Consumers = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            expectedB1Consumers.add(String.format("consumer-%d", count++));
+        }
+        Collections.sort(b1Consumers);
+        assertEquals(expectedB1Consumers, b1Consumers);
+        List<String> expectedB2Consumers = new ArrayList<>();
+        for (int i = 0; i < 2; i++) {
+            expectedB2Consumers.add(String.format("consumer-%d", count++));
+        }
+        Collections.sort(b2Consumers);
+        assertEquals(expectedB2Consumers, b2Consumers);
     }
     
 }
