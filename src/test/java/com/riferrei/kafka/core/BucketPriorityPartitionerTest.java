@@ -486,18 +486,19 @@ public class BucketPriorityPartitionerTest {
             // The expected output is:
             // - 4 records on each partition of B1
             // - 16 records on each partition of B2
-            Map<Integer, Integer> expected = Map.of(
-                0, 4,
-                1, 4,
-                2, 4,
-                3, 4,
-                4, 4,
-                5, 4,
-                6, 4,
-                7, 4,
-                8, 16,
-                9, 16
-            );
+            Map<Integer, Integer> expected = new HashMap<>();
+            // B1
+            expected.put(0, 4);
+            expected.put(1, 4);
+            expected.put(2, 4);
+            expected.put(3, 4);
+            expected.put(4, 4);
+            expected.put(5, 4);
+            expected.put(6, 4);
+            expected.put(7, 4);
+            // B2
+            expected.put(8, 16);
+            expected.put(9, 16);
             assertEquals(expected, distribution);
         }
     }
