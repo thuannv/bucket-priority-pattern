@@ -20,8 +20,8 @@ Let's understand how this works with an example.
 ![Partitioner Overview](images/partitioner-overview.png)
 
 Here we can see that the partitions were grouped into the buckets `Platinum` and `Gold`.
-The `Platinum` bucket has a higher priority and therefore was configured to have `70%` of the allocation, whereas the `Gold` bucket has lower priority and therefore was configured to have only `30%`.
-This means that for a topic that contains `6` partitions `4` of them will be associated to the `Platinum` bucket and `2` will be associated to the `Gold` bucket.
+The `Platinum` bucket has a higher priority and therefore was configured to have 70% of the allocation, whereas the `Gold` bucket has lower priority and therefore was configured to have only 30%.
+This means that for a topic that contains 6 partitions 4 of them will be associated to the `Platinum` bucket and 2 will be associated to the `Gold` bucket.
 To implement the record prioritization there has to be a process that ensures that records with higher priority will end up in the `Platinum` bucket and records with lower priority will end up in the `Gold` bucket.
 Moreover, consumers need to subscribe to the topic knowing which buckets they need to be associated to.
 This means that developers can decide to execute more consumers for the `Platinum` bucket and less consumers for the `Gold` bucket to ensure that high priority records are processed faster.
