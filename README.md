@@ -74,11 +74,12 @@ configs.setProperty(BucketPriorityConfig.TOPIC_CONFIG, "orders");
 
 Finally you have to specify in the configuration which buckets will be configured and what is the partition allocation for each one of them.
 The partition allocation is specified in terms of percentage.
+Note that the usage of the symbol `%` is optional.
 
 
 ```bash
 configs.setProperty(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
-configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
 ```
 
 ### Fallback action
@@ -127,12 +128,13 @@ configs.setProperty(BucketPriorityConfig.TOPIC_CONFIG, "orders");
 
 You also have to specify in the configuration which buckets will be configured and what is the partition allocation for each one of them.
 The partition allocation is specified in terms of percentage.
-Ideally this configuration has to be the same used in the producer.
+Note that the usage of the symbol `%` is optional.
+Ideally the partition allocation configuration needs to be the same used in the producer.
 
 
 ```bash
 configs.setProperty(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
-configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
 ```
 
 Finally you need to specify in the configuration which bucket the consumer will be associated.

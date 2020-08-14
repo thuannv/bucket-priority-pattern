@@ -54,8 +54,9 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
     public void configure(Map<String, ?> configs) {
         config = new BucketPriorityConfig(configs);
         List<Integer> bucketAlloc = new ArrayList<>(config.allocation().size());
-        for (String bucketAllocItem : config.allocation()) {
-            bucketAlloc.add(Integer.parseInt(bucketAllocItem.trim()));
+        for (String allocItem : config.allocation()) {
+            allocItem = allocItem.replaceAll("%", "").trim();
+            bucketAlloc.add(Integer.parseInt(allocItem));
         }
         if (config.buckets().size() != bucketAlloc.size()) {
             throw new InvalidConfigurationException("The bucket allocation " + 

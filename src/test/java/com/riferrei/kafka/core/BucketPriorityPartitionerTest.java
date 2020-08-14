@@ -60,7 +60,7 @@ public class BucketPriorityPartitionerTest {
             });
             // Check if complete configuration is gonna be enough
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
                 partitioner.configure(configs);
             });
         }
@@ -73,11 +73,11 @@ public class BucketPriorityPartitionerTest {
             assertThrows(InvalidConfigurationException.class, () -> {
                 configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
                 configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%");
                 partitioner.configure(configs);
             });
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
                 partitioner.configure(configs);
             });
         }
@@ -90,11 +90,11 @@ public class BucketPriorityPartitionerTest {
             assertThrows(InvalidConfigurationException.class, () -> {
                 configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
                 configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 20");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 20%");
                 partitioner.configure(configs);
             });
             assertDoesNotThrow(() -> {
-                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+                configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
                 partitioner.configure(configs);
             });
         }
@@ -107,7 +107,7 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         // Using two buckets implies having at least two partitions...
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
         // Create a topic with only one partition...
@@ -129,7 +129,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
         configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "RoundRobin");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
@@ -188,7 +188,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
         configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "Discard");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
@@ -234,7 +234,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "50, 30, 20");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "50%, 30%, 20%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
         // Create 10 partitions for buckets B1, B2, and B3
@@ -302,7 +302,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55, 40, 5");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
         // Create 10 partitions for buckets B1, B2, and B3
@@ -373,7 +373,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55, 40, 5");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
         // Create 5 partitions for buckets B1, B2, and B3
@@ -444,7 +444,7 @@ public class BucketPriorityPartitionerTest {
         Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
-        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80, 20");
+        configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
         // Create 10 partitions for buckets B1 and B2 that

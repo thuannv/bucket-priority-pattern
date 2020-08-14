@@ -49,7 +49,7 @@ public class BucketPriorityAssignorTest {
         });
         // Check if complete configuration is gonna be enough
         assertDoesNotThrow(() -> {
-            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
             assignor.configure(configs);
         });
     }
@@ -61,11 +61,11 @@ public class BucketPriorityAssignorTest {
         assertThrows(InvalidConfigurationException.class, () -> {
             configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
             configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
-            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%");
             assignor.configure(configs);
         });
         assertDoesNotThrow(() -> {
-            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
             assignor.configure(configs);
         });
     }
@@ -77,11 +77,11 @@ public class BucketPriorityAssignorTest {
         assertThrows(InvalidConfigurationException.class, () -> {
             configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
             configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
-            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 20");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 20%");
             assignor.configure(configs);
         });
         assertDoesNotThrow(() -> {
-            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70, 30");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
             assignor.configure(configs);
         });
     }
