@@ -104,7 +104,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkIfMinNumberPartitionsIsRespected() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         // Using two buckets implies having at least two partitions...
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
@@ -126,7 +126,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkIfRoundRobinFallbackActionIsTriggered() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
@@ -184,7 +184,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkIfDiscardFallbackActionIsTriggered() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
@@ -229,7 +229,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkBucketAllocationGivenEvenAllocationConfig() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "50%, 30%, 20%");
@@ -296,7 +296,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkBucketAllocationGivenUnevenAllocationConfig() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
@@ -366,7 +366,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkBucketAllocationGivenUnevenPartitionNumber() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2, B3");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
@@ -436,7 +436,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkRoundRobinBucketDataDistribution() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
@@ -506,7 +506,7 @@ public class BucketPriorityPartitionerTest {
     @Test
     public void checkBucketsResizeDueToPartitionsIncrease() {
         final String topic = "test";
-        Map<String, String> configs = new HashMap<>();
+        final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");

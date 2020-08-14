@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -118,6 +117,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // consumers that are using a bucket priority
         // strategy. The remaining assignments should
         // be used as they are.
+        List<String> consumersToRemove = new ArrayList<>();
         Map<String, List<TopicPartition>> bucketAssignments = new LinkedHashMap<>();
         Map<String, List<String>> consumersPerBucket = new LinkedHashMap<>();
         for (String consumer : assignments.keySet()) {
@@ -132,12 +132,16 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
                         List<String> consumers = consumersPerBucket.get(bucket);
                         consumers.add(consumer);
                     } else {
-                        consumersPerBucket.put(bucket, Arrays.asList(consumer));
+                        List<String> consumers = new ArrayList<>();
+                        consumers.add(consumer);
+                        consumersPerBucket.put(bucket, consumers);
                     }
                 }
-                assignments.remove(consumer);
+                consumersToRemove.add(consumer);
             }
         }
+        // Remove the consumers that should use bucket priority
+        consumersToRemove.stream().forEach(c -> assignments.remove(c));
         // Evenly distribute the partitions across the
         // available consumers in a per-bucket basis.
         AtomicInteger counter = new AtomicInteger(-1);
