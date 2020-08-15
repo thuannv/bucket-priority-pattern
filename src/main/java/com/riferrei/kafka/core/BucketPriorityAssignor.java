@@ -101,12 +101,12 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
     @Override
     public Map<String, List<TopicPartition>> assign(Map<String, Integer> partitionsPerTopic,
         Map<String, Subscription> subscriptions) {
-        int partitionCount = partitionsPerTopic.get(config.topic());
+        int numPartitions = partitionsPerTopic.get(config.topic());
         // Check if the # of partitions has changed
         // and trigger an update if that happened.
-        if (lastPartitionCount != partitionCount) {
-            updateBucketPartitions(partitionCount);
-            lastPartitionCount = partitionCount;
+        if (lastPartitionCount != numPartitions) {
+            updatePartitionsAssignment(numPartitions);
+            lastPartitionCount = numPartitions;
         }
         // Create a first version of the assignments
         // using the strategy inherited from super.
@@ -160,8 +160,8 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         return assignments;
     }
 
-    private void updateBucketPartitions(int partitionCount) {
-        List<TopicPartition> partitions = partitions(config.topic(), partitionCount);
+    private void updatePartitionsAssignment(int numPartitions) {
+        List<TopicPartition> partitions = partitions(config.topic(), numPartitions);
         if (partitions.size() < buckets.size()) {
             StringBuilder message = new StringBuilder();
             message.append("The number of partitions available for the topic '");
@@ -170,16 +170,18 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
             message.append(buckets.size()).append(".");
             throw new InvalidConfigurationException(message.toString());
         }
-        // Sort partitions in ascendent order
+        // Sort partitions in ascendent order since
+        // the partitions will be mapped into the
+        // buckets from partition-0 to partition-n.
         partitions = partitions.stream()
             .sorted(Comparator.comparing(TopicPartition::partition))
             .collect(Collectors.toList());
         // Design the layout of the distribution
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
-        for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
-            int bucketSize = bucket.getValue().size(partitions.size());
-            layout.put(bucket.getKey(), bucketSize);
+        for (Map.Entry<String, Bucket> entry : buckets.entrySet()) {
+            int bucketSize = entry.getValue().size(partitions.size());
+            layout.put(entry.getKey(), bucketSize);
             distribution += bucketSize;
         }
         // Check if there are unassigned partitions.
@@ -197,13 +199,12 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // Finally assign the available partitions to buckets
         int partition = -1;
         TopicPartition topicPartition = null;
-        bucketAssign: for (String bucketName : buckets.keySet()) {
-            Bucket bucket = buckets.get(bucketName);
-            int bucketSize = layout.get(bucketName);
-            bucket.getPartitions().clear();
+        bucketAssign: for (Map.Entry<String, Bucket> entry : buckets.entrySet()) {
+            int bucketSize = layout.get(entry.getKey());
+            entry.getValue().getPartitions().clear();
             for (int i = 0; i < bucketSize; i++) {
                 topicPartition = new TopicPartition(config.topic(), ++partition);
-                bucket.getPartitions().add(topicPartition);
+                entry.getValue().getPartitions().add(topicPartition);
                 if (partition == partitions.size() - 1) {
                     break bucketAssign;
                 }

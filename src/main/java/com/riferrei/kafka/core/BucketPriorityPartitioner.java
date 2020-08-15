@@ -44,19 +44,19 @@ public class BucketPriorityPartitioner implements Partitioner {
     @Override
     public void configure(Map<String, ?> configs) {
         config = new BucketPriorityConfig(configs);
-        List<Integer> bucketAlloc = new ArrayList<>(config.allocation().size());
+        List<Integer> allocation = new ArrayList<>(config.allocation().size());
         for (String allocItem : config.allocation()) {
             allocItem = allocItem.replaceAll("%", "").trim();
-            bucketAlloc.add(Integer.parseInt(allocItem));
+            allocation.add(Integer.parseInt(allocItem));
         }
-        if (config.buckets().size() != bucketAlloc.size()) {
+        if (config.buckets().size() != allocation.size()) {
             throw new InvalidConfigurationException("The bucket allocation " + 
                 "doesn't match with the number of buckets configured.");
         }
-        int oneHundredPerc = bucketAlloc.stream()
+        int sumAllBuckets = allocation.stream()
             .mapToInt(Integer::intValue)
             .sum();
-        if (oneHundredPerc != 100) {
+        if (sumAllBuckets != 100) {
             throw new InvalidConfigurationException("The bucket allocation " +
                 "is incorrect. The sum of all buckets needs to be 100.");
         }
@@ -73,7 +73,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
             String bucketName = config.buckets().get(i).trim();
-            buckets.put(bucketName, new Bucket(bucketAlloc.get(i)));
+            buckets.put(bucketName, new Bucket(allocation.get(i)));
         }
         // Sort the buckets with higher allocation to come
         // first than the others. This will help later during
@@ -136,18 +136,18 @@ public class BucketPriorityPartitioner implements Partitioner {
     }
 
     private int getPartition(String bucketName, Cluster cluster) {
-        int partitionCount = cluster.partitionCountForTopic(config.topic());
+        int numPartitions = cluster.partitionCountForTopic(config.topic());
         // Check if the # of partitions has changed
         // and trigger an update if that happened.
-        if (lastPartitionCount != partitionCount) {
-            updateBucketPartitions(cluster);
-            lastPartitionCount = partitionCount;
+        if (lastPartitionCount != numPartitions) {
+            updatePartitionsAssignment(cluster);
+            lastPartitionCount = numPartitions;
         }
         Bucket bucket = buckets.get(bucketName);
         return bucket.nextPartition();
     }
 
-    private void updateBucketPartitions(Cluster cluster) {
+    private void updatePartitionsAssignment(Cluster cluster) {
         List<PartitionInfo> partitions = cluster.partitionsForTopic(config.topic());
         if (partitions.size() < buckets.size()) {
             StringBuilder message = new StringBuilder();
@@ -157,16 +157,18 @@ public class BucketPriorityPartitioner implements Partitioner {
             message.append(buckets.size()).append(".");
             throw new InvalidConfigurationException(message.toString());
         }
-        // Sort partitions in ascendent order
+        // Sort partitions in ascendent order since
+        // the partitions will be mapped into the
+        // buckets from partition-0 to partition-n.
         partitions = partitions.stream()
             .sorted(Comparator.comparing(PartitionInfo::partition))
             .collect(Collectors.toList());
         // Design the layout of the distribution
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
-        for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
-            int bucketSize = bucket.getValue().size(partitions.size());
-            layout.put(bucket.getKey(), bucketSize);
+        for (Map.Entry<String, Bucket> entry : buckets.entrySet()) {
+            int bucketSize = entry.getValue().size(partitions.size());
+            layout.put(entry.getKey(), bucketSize);
             distribution += bucketSize;
         }
         // Check if there are unassigned partitions.
@@ -176,20 +178,20 @@ public class BucketPriorityPartitioner implements Partitioner {
         int remaining = partitions.size() - distribution;
         Iterator<String> iter = buckets.keySet().iterator();
         while (remaining > 0) {
-            String bucket = iter.next();
-            int bucketSize = layout.get(bucket);
-            layout.put(bucket, ++bucketSize);
+            String bucketName = iter.next();
+            int bucketSize = layout.get(bucketName);
+            layout.put(bucketName, ++bucketSize);
             remaining--;
         }
         // Finally assign the available partitions to buckets
         int partition = -1;
         TopicPartition topicPartition = null;
-        bucketAssign: for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
-            int bucketSize = layout.get(bucket.getKey());
-            bucket.getValue().getPartitions().clear();
+        bucketAssign: for (Map.Entry<String, Bucket> entry : buckets.entrySet()) {
+            int bucketSize = layout.get(entry.getKey());
+            entry.getValue().getPartitions().clear();
             for (int i = 0; i < bucketSize; i++) {
                 topicPartition = new TopicPartition(config.topic(), ++partition);
-                bucket.getValue().getPartitions().add(topicPartition);
+                entry.getValue().getPartitions().add(topicPartition);
                 if (partition == partitions.size() - 1) {
                     break bucketAssign;
                 }
