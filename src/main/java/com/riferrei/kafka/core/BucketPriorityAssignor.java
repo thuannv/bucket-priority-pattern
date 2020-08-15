@@ -72,8 +72,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         }
         // Sort the buckets with higher allocation to come
         // first than the others. This will help later during
-        // bucket allocation if unassigned partitions are found
-        // and therefore can be assigned to the first buckets.
+        // the allocation if unassigned partitions are found.
         buckets = buckets.entrySet()
             .stream()
             .sorted(Map.Entry.comparingByValue())
