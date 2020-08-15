@@ -115,6 +115,7 @@ public class BucketPriorityAssignorTest {
 
     @Test
     public void checkMultipleTopicsAssignment() {
+
         final String regularTopic = "regularTopic";
         final String bucketTopic = "bucketTopic";
         final Map<String, String> configs = new HashMap<>();
@@ -123,9 +124,11 @@ public class BucketPriorityAssignorTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
         BucketPriorityAssignor assignor = new BucketPriorityAssignor();
         assignor.configure(configs);
+
         // Create the partitions and the subscriptions
         Map<String, Integer> partitionsPerTopic = Map.of(regularTopic, 6, bucketTopic, 6);
         Map<String, ConsumerPartitionAssignor.Subscription> subscriptions = new HashMap<>();
+
         // Create 4 consumers, 2 for each topic
         int count = 0;
         for (int i = 0; i < 2; i++) {
@@ -138,18 +141,22 @@ public class BucketPriorityAssignorTest {
                 new ConsumerPartitionAssignor.Subscription(
                     List.of(bucketTopic), StandardCharsets.UTF_8.encode("B1")));
         }
+
         // Execute the assignor
         Map<String, List<TopicPartition>> assignments =
             assignor.assign(partitionsPerTopic, subscriptions);
+
         // The expected output is that each of the 4 consumers
         // will have assignments and their assignments need to
         // be greather than zero.
         assertEquals(4, assignments.size());
         assignments.values().forEach(v -> assertTrue(v.size() > 0));
+        
     }
 
     @Test
-    public void checkPerBucketConsumerAssignment() {
+    public void checkPerBucketAssignmentWithoutRebalance() {
+
         final String bucketTopic = "bucketTopic";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, bucketTopic);
@@ -157,9 +164,11 @@ public class BucketPriorityAssignorTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
         BucketPriorityAssignor assignor = new BucketPriorityAssignor();
         assignor.configure(configs);
+
         // Create the partitions and the subscriptions
         Map<String, Integer> partitionsPerTopic = Map.of(bucketTopic, 10);
         Map<String, ConsumerPartitionAssignor.Subscription> subscriptions = new HashMap<>();
+
         int count = 0;
         // Create 8 consumers for the B1 bucket
         for (int i = 0; i < 8; i++) {
@@ -173,14 +182,17 @@ public class BucketPriorityAssignorTest {
                 new ConsumerPartitionAssignor.Subscription(
                     List.of(bucketTopic), StandardCharsets.UTF_8.encode("B2")));
         }
+
         // Execute the assignor
         Map<String, List<TopicPartition>> assignments =
             assignor.assign(partitionsPerTopic, subscriptions);
+
         // The expected output is that each of the 10 consumers
         // will have assignments and their assignments need to
         // be greather than zero.
         assertEquals(10, assignments.size());
         assignments.values().forEach(v -> assertTrue(v.size() > 0));
+
         // Also consumer-0 to consumer-7 should be working
         // on B1 while consumer-8 and consumer-9 should be
         // working on B2.
@@ -202,14 +214,17 @@ public class BucketPriorityAssignorTest {
         for (int i = 0; i < 8; i++) {
             expectedB1Consumers.add(String.format("consumer-%d", count++));
         }
-        Collections.sort(b1Consumers);
-        assertEquals(expectedB1Consumers, b1Consumers);
         List<String> expectedB2Consumers = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
             expectedB2Consumers.add(String.format("consumer-%d", count++));
         }
+        Collections.sort(b1Consumers);
         Collections.sort(b2Consumers);
+
+        // Check if the expected consumers is correct
+        assertEquals(expectedB1Consumers, b1Consumers);
         assertEquals(expectedB2Consumers, b2Consumers);
+
     }
     
 }

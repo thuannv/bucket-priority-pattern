@@ -505,6 +505,7 @@ public class BucketPriorityPartitionerTest {
 
     @Test
     public void checkBucketsResizeDueToPartitionsIncrease() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -512,6 +513,7 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create 10 partitions for buckets B1 and B2 that
         // will create the following partition assignment:
         // B1 = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -521,10 +523,13 @@ public class BucketPriorityPartitionerTest {
             partitions.add(new PartitionInfo(topic, i, null, null, null));
         }
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             final Map<Integer, Integer> distribution = new HashMap<>();
             ProducerRecord<String, String> record = null;
+
             // Produce 32 records to the 'B1' bucket that
             // should distribute 4 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -539,6 +544,7 @@ public class BucketPriorityPartitionerTest {
                     distribution.put(chosenPartition, ++currentCount);
                 });
             }
+
             // Produce 32 records to the 'B2' bucket that
             // should distribute 16 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -553,6 +559,7 @@ public class BucketPriorityPartitionerTest {
                     distribution.put(chosenPartition, ++currentCount);
                 });
             }
+
             // The expected output is:
             // - 4 records on each partition of B1
             // - 16 records on each partition of B2
@@ -570,6 +577,7 @@ public class BucketPriorityPartitionerTest {
             expected.put(8, 16);
             expected.put(9, 16);
             assertEquals(expected, distribution);
+
             // Now let's force the partitions to be reallocated into
             // the buckets because the number of partitions has been
             // increased (doubled) by the user.
@@ -578,8 +586,10 @@ public class BucketPriorityPartitionerTest {
             // following new partition assignment:
             // B1 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
             // B2 = [16, 17, 18, 19]
+
             // Clear the distribution counter so we can check again
             distribution.clear();
+
             // Produce 32 records to the 'B1' bucket that
             // should distribute 2 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -594,6 +604,7 @@ public class BucketPriorityPartitionerTest {
                     distribution.put(chosenPartition, ++currentCount);
                 });
             }
+
             // Produce 32 records to the 'B2' bucket that
             // should distribute 8 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -609,6 +620,7 @@ public class BucketPriorityPartitionerTest {
                 });
             }
             expected.clear();
+
             // The expected output is:
             // - 2 records on each partition of B1
             // - 8 records on each partition of B2
@@ -635,7 +647,9 @@ public class BucketPriorityPartitionerTest {
             expected.put(18, 8);
             expected.put(19, 8);
             assertEquals(expected, distribution);
+
         }
+        
     }
 
     @SuppressWarnings("rawtypes")
