@@ -36,8 +36,6 @@ import org.apache.kafka.common.errors.InvalidConfigurationException;
 import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 
-import static com.riferrei.kafka.core.Bucket.size;
-
 public class BucketPriorityAssignor extends CooperativeStickyAssignor implements Configurable {
 
     private BucketPriorityConfig config;
@@ -180,8 +178,7 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
         for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
-            int allocation = bucket.getValue().getAllocation();
-            int bucketSize = size(allocation, partitions.size());
+            int bucketSize = bucket.getValue().size(partitions.size());
             layout.put(bucket.getKey(), bucketSize);
             distribution += bucketSize;
         }

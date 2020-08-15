@@ -33,8 +33,6 @@ import org.apache.kafka.clients.producer.RoundRobinPartitioner;
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
 
-import static com.riferrei.kafka.core.Bucket.size;
-
 public class BucketPriorityPartitioner implements Partitioner {
 
     private Partitioner fallbackPartitioner;
@@ -167,8 +165,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         int distribution = 0;
         Map<String, Integer> layout = new LinkedHashMap<>();
         for (Map.Entry<String, Bucket> bucket : buckets.entrySet()) {
-            int allocation = bucket.getValue().getAllocation();
-            int bucketSize = size(allocation, partitions.size());
+            int bucketSize = bucket.getValue().size(partitions.size());
             layout.put(bucket.getKey(), bucketSize);
             distribution += bucketSize;
         }

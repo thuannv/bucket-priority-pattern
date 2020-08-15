@@ -60,16 +60,16 @@ public class Bucket implements Comparable<Bucket> {
         counter.decrementAndGet();
     }
 
+    public int size(int numPartitions) {
+        return Math.round(((float) allocation / 100) * numPartitions);
+    }
+
     public int getAllocation() {
         return allocation;
     }
 
     public List<TopicPartition> getPartitions() {
         return partitions;
-    }
-
-    public static int size(int allocation, int partitionCount) {
-        return Math.round(((float) allocation / 100) * partitionCount);
     }
 
 }
