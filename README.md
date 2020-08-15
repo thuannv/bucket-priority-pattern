@@ -157,6 +157,9 @@ configs.setProperty(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
 configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
 ```
 
+The assignor ensures that all partitions from the topic will be assigned to the buckets.
+In case of the allocation result in some partitions being left behind because the distribution is not even, the remaining partitions will be assigned to the buckets using a round robin algorithm over the buckets sorted by allocation.
+
 Finally you need to specify in the configuration which bucket the consumer will be associated.
 
 ```bash
