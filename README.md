@@ -82,6 +82,9 @@ configs.setProperty(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
 configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
 ```
 
+The partitioner ensures that all partitions from the topic will be assigned to the buckets.
+In case of the allocation result in some partitions being left behind because the distribution is not even, the remaining partitions will be assigned to the buckets using a round robin algorithm over the buckets sorted by allocation.
+
 ### Records and buckets
 
 In order to specify which bucket should be used your producer need to provide this information on the record key.

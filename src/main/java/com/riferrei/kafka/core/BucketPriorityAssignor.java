@@ -22,7 +22,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
-import org.apache.kafka.common.utils.Utils;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.apache.kafka.common.utils.Utils;
 
 public class BucketPriorityAssignor extends CooperativeStickyAssignor implements Configurable {
 
@@ -189,9 +188,15 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // starting from the top to bottom until there
         // are no partitions left.
         int remaining = partitions.size() - distribution;
-        Iterator<String> iter = buckets.keySet().iterator();
+        AtomicInteger counter = new AtomicInteger(-1);
+        List<String> availableBuckets = new ArrayList<>();
+        buckets.keySet().stream().forEach(bucket -> {
+            availableBuckets.add(bucket);
+        });
         while (remaining > 0) {
-            String bucketName = iter.next();
+            int nextValue = counter.incrementAndGet();
+            int index = Utils.toPositive(nextValue) % availableBuckets.size();
+            String bucketName = availableBuckets.get(index);
             int bucketSize = layout.get(bucketName);
             layout.put(bucketName, ++bucketSize);
             remaining--;

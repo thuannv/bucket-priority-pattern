@@ -19,10 +19,10 @@ package com.riferrei.kafka.core;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.kafka.common.Cluster;
@@ -32,6 +32,7 @@ import org.apache.kafka.clients.producer.Partitioner;
 import org.apache.kafka.clients.producer.RoundRobinPartitioner;
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
+import org.apache.kafka.common.utils.Utils;
 
 public class BucketPriorityPartitioner implements Partitioner {
 
@@ -77,8 +78,7 @@ public class BucketPriorityPartitioner implements Partitioner {
         }
         // Sort the buckets with higher allocation to come
         // first than the others. This will help later during
-        // bucket allocation if unassigned partitions are found
-        // and therefore can be assigned to the first buckets.
+        // the allocation if unassigned partitions are found.
         buckets = buckets.entrySet()
             .stream()
             .sorted(Map.Entry.comparingByValue())
@@ -176,9 +176,15 @@ public class BucketPriorityPartitioner implements Partitioner {
         // starting from the top to bottom until there
         // are no partitions left.
         int remaining = partitions.size() - distribution;
-        Iterator<String> iter = buckets.keySet().iterator();
+        AtomicInteger counter = new AtomicInteger(-1);
+        List<String> availableBuckets = new ArrayList<>();
+        buckets.keySet().stream().forEach(bucket -> {
+            availableBuckets.add(bucket);
+        });
         while (remaining > 0) {
-            String bucketName = iter.next();
+            int nextValue = counter.incrementAndGet();
+            int index = Utils.toPositive(nextValue) % availableBuckets.size();
+            String bucketName = availableBuckets.get(index);
             int bucketSize = layout.get(bucketName);
             layout.put(bucketName, ++bucketSize);
             remaining--;
