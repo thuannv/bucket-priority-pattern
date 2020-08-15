@@ -82,6 +82,23 @@ configs.setProperty(BucketPriorityConfig.BUCKETS_CONFIG, "Platinum, Gold");
 configs.setProperty(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
 ```
 
+### Records and buckets
+
+In order to specify which bucket should be used your producer need to provide this information on the record key.
+The partitioner will inspect each key in the attempt to understand in which bucket the record should be written.
+For this reason the key must be an instance of a [java.lang.String](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html) and it need to contain the bucket name either as one literal string or as the first part of a string separated by an delimiter.
+For example, to specify that the bucket is `Platinum` then following examples are valid:
+
+* Key = `"Platinum"`
+* Key = `"Platinum-001"`
+* Key = `"Platinum-Group01-001"`
+
+The default delimiter is '`-`' but you can change to something else:
+
+```bash
+configs.setProperty(BucketPriorityConfig.DELIMITER_CONFIG, "|");
+```
+
 ### Fallback action
 
 There are some situations where the partitioner will need to know what to do when there is not enough data available in the record to decide which bucket to use. For instance:
