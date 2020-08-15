@@ -125,6 +125,7 @@ public class BucketPriorityPartitionerTest {
 
     @Test
     public void checkIfRoundRobinFallbackActionIsTriggered() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -133,15 +134,19 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "RoundRobin");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create two partitions so the round robin algorithm can leverage
         PartitionInfo partition0 = new PartitionInfo(topic, 0, null, null, null);
         PartitionInfo partition1 = new PartitionInfo(topic, 1, null, null, null);
         List<PartitionInfo> partitions = List.of(partition0, partition1);
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             ProducerRecord<String, String> record = null;
             List<Integer> chosenPartitions = new ArrayList<>();
+
             // Produce a record with a wrong topic to force fallback...
             record = new ProducerRecord<String, String>("customers", "B1", "value");
             producer.send(record, (metadata, exception) -> {
@@ -150,16 +155,19 @@ public class BucketPriorityPartitionerTest {
                     chosenPartitions.add(metadata.partition());
                 }
             });
+
             // Produce a record without a key to force fallback...
             record = new ProducerRecord<String, String>(topic, null, "value");
             producer.send(record, (metadata, exception) -> {
                 chosenPartitions.add(metadata.partition());
             });
+
             // Using a key without a valid bucket to force fallback...
             record = new ProducerRecord<String, String>(topic, "Wrong", "value");
             producer.send(record, (metadata, exception) -> {
                 chosenPartitions.add(metadata.partition());
             });
+
             // Now produce three records with valid topic and key...
             record = new ProducerRecord<String, String>(topic, "B1-001", "value");
             producer.send(record, (metadata, exception) -> {
@@ -173,16 +181,20 @@ public class BucketPriorityPartitionerTest {
             producer.send(record, (metadata, exception) -> {
                 chosenPartitions.add(metadata.partition());
             });
+
             // The expected output is:
             // - First two records are spread over the 2 partitions
             // - Two records need to be sent to partition 0 (B1)
             // - One record need to be sent to partition 1 (B2)
             assertEquals(List.of(0, 1, 0, 0, 1), chosenPartitions);
+
         }
+
     }
 
     @Test
     public void checkIfDiscardFallbackActionIsTriggered() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -191,16 +203,20 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "Discard");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create two partitions to make things a little bit more interesting
         PartitionInfo partition0 = new PartitionInfo(topic, 0, null, null, null);
         PartitionInfo partition1 = new PartitionInfo(topic, 1, null, null, null);
         List<PartitionInfo> partitions = List.of(partition0, partition1);
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             int counter = 0;
             ProducerRecord<String, String> record = null;
             List<Integer> chosenPartitions = new ArrayList<>();
+
             // Produce 10 different records where 5 of them will
             // be sent using the key "B1" and thus need to end up
             // in the partition 0. The other 5 records will be sent
@@ -219,15 +235,19 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // The expected output is:
             // - The first 5 records need to be discarded
             // - The last 5 records need to end up on partition 0 (B1)
             assertEquals(List.of(0, 0, 0, 0, 0), chosenPartitions);
+
         }
+
     }
 
     @Test
     public void checkBucketAllocationGivenEvenAllocationConfig() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -235,14 +255,17 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "50%, 30%, 20%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create 10 partitions for buckets B1, B2, and B3
         List<PartitionInfo> partitions = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             partitions.add(new PartitionInfo(topic, i, null, null, null));
         }
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             ProducerRecord<String, String> record = null;
             // Produce 10 records to the 'B1' bucket that must
             // be composed of the partitions [0, 1, 2, 3, 4]
@@ -257,6 +280,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B2' bucket that must
             // be composed of the partitions [5, 6, 7]
             final AtomicInteger b2Count = new AtomicInteger(0);
@@ -270,6 +294,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B3' bucket that must
             // be composed of the partitions [8, 9]
             final AtomicInteger b3Count = new AtomicInteger(0);
@@ -283,6 +308,7 @@ public class BucketPriorityPartitionerTest {
                     }
                });
             }
+
             // The expected output is:
             // - B1 should contain 10 records
             // - B2 should contain 10 records
@@ -290,11 +316,14 @@ public class BucketPriorityPartitionerTest {
             assertEquals(10, b1Count.get());
             assertEquals(10, b2Count.get());
             assertEquals(10, b3Count.get());
+
         }
+
     }
 
     @Test
     public void checkBucketAllocationGivenUnevenAllocationConfig() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -302,14 +331,17 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create 10 partitions for buckets B1, B2, and B3
         List<PartitionInfo> partitions = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
             partitions.add(new PartitionInfo(topic, i, null, null, null));
         }
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             ProducerRecord<String, String> record = null;
             // Produce 10 records to the 'B1' bucket that must
             // be composed of the partitions [0, 1, 2, 3, 4, 5]
@@ -324,6 +356,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B2' bucket that must
             // be composed of the partitions [6, 7, 8, 9]
             final AtomicInteger b2Count = new AtomicInteger(0);
@@ -337,6 +370,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B3' bucket that must
             // be composed of zero partitions [] because is uneven
             final AtomicInteger b3Count = new AtomicInteger(0);
@@ -353,6 +387,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // The expected output is:
             // - B1 should contain 10 records
             // - B2 should contain 10 records
@@ -360,11 +395,14 @@ public class BucketPriorityPartitionerTest {
             assertEquals(10, b1Count.get());
             assertEquals(10, b2Count.get());
             assertEquals(0, b3Count.get());
+
         }
+
     }
 
     @Test
     public void checkBucketAllocationGivenUnevenPartitionNumber() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -372,14 +410,17 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "55%, 40%, 5%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create 5 partitions for buckets B1, B2, and B3
         List<PartitionInfo> partitions = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             partitions.add(new PartitionInfo(topic, i, null, null, null));
         }
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             ProducerRecord<String, String> record = null;
             // Produce 10 records to the 'B1' bucket that must
             // be composed of the partitions [0, 1, 2]
@@ -394,6 +435,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B2' bucket that must
             // be composed of the partitions [3, 4]
             final AtomicInteger b2Count = new AtomicInteger(0);
@@ -407,6 +449,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // Produce 10 records to the 'B3' bucket that must
             // be composed of zero partitions [] because is uneven
             final AtomicInteger b3Count = new AtomicInteger(0);
@@ -423,6 +466,7 @@ public class BucketPriorityPartitionerTest {
                     }
                 });
             }
+
             // The expected output is:
             // - B1 should contain 10 records
             // - B2 should contain 10 records
@@ -430,11 +474,14 @@ public class BucketPriorityPartitionerTest {
             assertEquals(10, b1Count.get());
             assertEquals(10, b2Count.get());
             assertEquals(0, b3Count.get());
+
         }
+
     }
 
     @Test
     public void checkRoundRobinBucketDataDistribution() {
+
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
@@ -442,6 +489,7 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "80%, 20%");
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
+
         // Create 10 partitions for buckets B1 and B2 that
         // will create the following partition assignment:
         // B1 = [0, 1, 2, 3, 4, 5, 6, 7]
@@ -451,8 +499,10 @@ public class BucketPriorityPartitionerTest {
             partitions.add(new PartitionInfo(topic, i, null, null, null));
         }
         Cluster cluster = createCluster(partitions);
+
         try (MockProducer<String, String> producer = new MockProducer<>(cluster,
             true, partitioner, new StringSerializer(), new StringSerializer())) {
+
             final Map<Integer, Integer> distribution = new HashMap<>();
             ProducerRecord<String, String> record = null;
             // Produce 32 records to the 'B1' bucket that
@@ -469,6 +519,7 @@ public class BucketPriorityPartitionerTest {
                     distribution.put(chosenPartition, ++currentCount);
                 });
             }
+
             // Produce 32 records to the 'B2' bucket that
             // should distribute 16 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -483,6 +534,7 @@ public class BucketPriorityPartitionerTest {
                     distribution.put(chosenPartition, ++currentCount);
                 });
             }
+
             // The expected output is:
             // - 4 records on each partition of B1
             // - 16 records on each partition of B2
@@ -500,7 +552,9 @@ public class BucketPriorityPartitionerTest {
             expected.put(8, 16);
             expected.put(9, 16);
             assertEquals(expected, distribution);
+
         }
+
     }
 
     @Test
@@ -529,7 +583,6 @@ public class BucketPriorityPartitionerTest {
 
             final Map<Integer, Integer> distribution = new HashMap<>();
             ProducerRecord<String, String> record = null;
-
             // Produce 32 records to the 'B1' bucket that
             // should distribute 4 records per partition.
             for (int i = 0; i < 32; i++) {
@@ -649,7 +702,7 @@ public class BucketPriorityPartitionerTest {
             assertEquals(expected, distribution);
 
         }
-        
+
     }
 
     @SuppressWarnings("rawtypes")
