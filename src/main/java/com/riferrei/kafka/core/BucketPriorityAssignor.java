@@ -187,18 +187,20 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
         // starting from the top to bottom until there
         // are no partitions left.
         int remaining = partitions.size() - distribution;
-        AtomicInteger counter = new AtomicInteger(-1);
-        List<String> availableBuckets = new ArrayList<>();
-        buckets.keySet().stream().forEach(bucket -> {
-            availableBuckets.add(bucket);
-        });
-        while (remaining > 0) {
-            int nextValue = counter.incrementAndGet();
-            int index = Utils.toPositive(nextValue) % availableBuckets.size();
-            String bucketName = availableBuckets.get(index);
-            int bucketSize = layout.get(bucketName);
-            layout.put(bucketName, ++bucketSize);
-            remaining--;
+        if (remaining > 0) {
+            AtomicInteger counter = new AtomicInteger(-1);
+            List<String> availableBuckets = new ArrayList<>();
+            buckets.keySet().stream().forEach(bucket -> {
+                availableBuckets.add(bucket);
+            });
+            while (remaining > 0) {
+                int nextValue = counter.incrementAndGet();
+                int index = Utils.toPositive(nextValue) % availableBuckets.size();
+                String bucketName = availableBuckets.get(index);
+                int bucketSize = layout.get(bucketName);
+                layout.put(bucketName, ++bucketSize);
+                remaining--;
+            }
         }
         // Finally assign the available partitions to buckets
         int partition = -1;
