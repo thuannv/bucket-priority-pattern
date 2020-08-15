@@ -93,7 +93,7 @@ For example, to specify that the bucket is `Platinum` then following examples ar
 * Key = `"Platinum-001"`
 * Key = `"Platinum-Group01-001"`
 
-The default delimiter is '`-`' but you can change to something else:
+The default delimiter is `-` but you can change to something else:
 
 ```bash
 configs.setProperty(BucketPriorityConfig.DELIMITER_CONFIG, "|");
