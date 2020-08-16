@@ -35,7 +35,7 @@ On the consumer side you need to use the `BucketPriorityAssignor` to ensure that
 
 With the bucket priority you can implement record prioritization by having more consumers working on buckets with higher priorities while buckets with less priority can have less consumers.
 Record prioritization can also be obtained by executing these consumers in a order that gives preference to processing high priority buckets before the less priority ones.
-While coordinating this execution might involve some extra coding from your part (perhaps using some sort of scheduler) you don't necessarily have to write low-level code to manage partition assignment and keep your consumers simple by leveraring the standard `subscribe()` and `poll()` methods.
+While coordinating this execution might involve some extra coding from your part (perhaps using some sort of scheduler) you don't necessarily have to implement low-level code to manage partition assignment and keep your consumers simple by leveraring the standard `subscribe()` and `poll()` methods.
 
 ## Building the project
 
