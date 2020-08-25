@@ -102,7 +102,7 @@ The default delimiter is `-` but you can change to something else:
 configs.setProperty(BucketPriorityConfig.DELIMITER_CONFIG, "|");
 ```
 
-### Fallback action
+### Fallback partitioner
 
 There are some situations where the partitioner will need to know what to do when there is not enough data available in the record to decide which bucket to use. For instance:
 
@@ -110,19 +110,22 @@ There are some situations where the partitioner will need to know what to do whe
 * When a key is not present in the record or it's not using the right format.
 * When the data about which bucket to use don't exist or can't be found.
 
-For these situations the partitioner needs to know what to do and we call this fallback action.
-By default the fallback action is to leverage the same logic used for the default partitioner in Kafka.
-But you can modify this behavior by specifying for example that it should use round robin:
+For these situations an fallback partitioner will be used.
+Here is an example of configuring the fallback partitioner to round-robin:
 
 ```bash
-configs.setProperty(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "RoundRobin");
+configs.setProperty(BucketPriorityConfig.FALLBACK_PARTITIONER_CONFIG,
+   "org.apache.kafka.clients.producer.RoundRobinPartitioner");
 ```
 
-Alternatively, you can also specify that the fallback action is just discard the record:
+Discarding any record that can't be sent to any of the buckets is also possible:
 
 ```bash
-configs.setProperty(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "Discard");
+configs.setProperty(BucketPriorityConfig.FALLBACK_PARTITIONER_CONFIG,
+   "com.riferrei.kafka.core.DiscardPartitioner");
 ```
+
+If you don't configure a fallback partitioner explicitly, Kafka's default partitioner will be used.
 
 ## Using the assignor
 
@@ -170,7 +173,16 @@ configs.setProperty(BucketPriorityConfig.BUCKET_CONFIG, "Platinum");
 
 As you may know in Kafka a consumer can subscribe to multiple topics, allowing the same consumer to read records from partitions belonging to different topics.
 Because of this the assignor ensures that only the topic specified in the configuration will have its partitions assigned to the consumers using the bucket priority logic.
-The other topics will have their partitions assigned to consumers using the code from the [CooperativeStickyAssignor](https://kafka.apache.org/24/javadoc/org/apache/kafka/clients/consumer/CooperativeStickyAssignor.html) class introduced in the 2.4 version of Kafka.
+The other topics will have their partitions assigned to consumers using a fallback assignor.
+
+Here is an example of configuring the fallback assignor to round-robin:
+
+```bash
+configs.setProperty(BucketPriorityConfig.FALLBACK_ASSIGNOR_CONFIG,
+   "org.apache.kafka.clients.consumer.RoundRobinAssignor");
+```
+
+If you don't configure a fallback assignor explicitly, Kafka's default assignor will be used.
 
 # License
 

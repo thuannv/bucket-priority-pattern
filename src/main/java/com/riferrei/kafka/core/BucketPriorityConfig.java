@@ -20,6 +20,8 @@ package com.riferrei.kafka.core;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kafka.clients.consumer.RangeAssignor;
+import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
@@ -49,9 +51,12 @@ public class BucketPriorityConfig extends AbstractConfig {
         return getString(DELIMITER_CONFIG);
     }
 
-    public FallbackAction fallbackAction() {
-        String value = getString(FALLBACK_ACTION_CONFIG);
-        return FallbackAction.valueOf(value.toUpperCase());
+    public String fallbackPartitioner() {
+        return getString(FALLBACK_PARTITIONER_CONFIG);
+    }
+
+    public String fallbackAssignor() {
+        return getString(FALLBACK_ASSIGNOR_CONFIG);
     }
 
     private static final ConfigDef CONFIG;
@@ -68,13 +73,12 @@ public class BucketPriorityConfig extends AbstractConfig {
     public static final String DELIMITER_CONFIG_DEFAULT = "-";
     public static final String ALLOCATION_CONFIG = "bucket.priority.allocation";
     public static final String ALLOCATION_CONFIG_DOC = "Allocation in percentage for each bucket.";
-    public static final String FALLBACK_ACTION_CONFIG = "bucket.priority.fallback.action";
-    public static final String FALLBACK_ACTION_CONFIG_DOC = "What to do when there is no bucket information.";
-    public static final String FALLBACK_ACTION_CONFIG_DEFAULT = FallbackAction.DEFAULT.name();
-
-    public enum FallbackAction {
-        DEFAULT, ROUNDROBIN, DISCARD
-    }
+    public static final String FALLBACK_PARTITIONER_CONFIG = "bucket.priority.fallback.partitioner";
+    public static final String FALLBACK_PARTITIONER_CONFIG_DOC = "Which partitioner to use as fallback strategy.";
+    public static final String FALLBACK_PARTITIONER_CONFIG_DEFAULT = DefaultPartitioner.class.getName();
+    public static final String FALLBACK_ASSIGNOR_CONFIG = "bucket.priority.fallback.assignor";
+    public static final String FALLBACK_ASSIGNOR_CONFIG_DOC = "Which assignor to use as fallback strategy.";
+    public static final String FALLBACK_ASSIGNOR_CONFIG_DEFAULT = RangeAssignor.class.getName();
 
     static {
         CONFIG = new ConfigDef()
@@ -100,11 +104,17 @@ public class BucketPriorityConfig extends AbstractConfig {
                 DELIMITER_CONFIG_DEFAULT,
                 ConfigDef.Importance.LOW,
                 DELIMITER_CONFIG_DOC)
-            .define(FALLBACK_ACTION_CONFIG,
-                ConfigDef.Type.STRING,
-                FALLBACK_ACTION_CONFIG_DEFAULT,
+            .define(FALLBACK_PARTITIONER_CONFIG,
+                ConfigDef.Type.CLASS,
+                FALLBACK_PARTITIONER_CONFIG_DEFAULT,
                 ConfigDef.Importance.LOW,
-                FALLBACK_ACTION_CONFIG_DOC);
+                FALLBACK_PARTITIONER_CONFIG_DOC)
+            .define(
+                FALLBACK_ASSIGNOR_CONFIG,
+                ConfigDef.Type.CLASS,
+                FALLBACK_ASSIGNOR_CONFIG_DEFAULT,
+                ConfigDef.Importance.LOW,
+                FALLBACK_ASSIGNOR_CONFIG_DOC);
     }
 
 }

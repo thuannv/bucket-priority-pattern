@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RoundRobinPartitioner;
 import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.PartitionInfo;
@@ -131,7 +132,8 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
-        configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "RoundRobin");
+        configs.put(BucketPriorityConfig.FALLBACK_PARTITIONER_CONFIG,
+            RoundRobinPartitioner.class.getName());
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
 
@@ -200,7 +202,8 @@ public class BucketPriorityPartitionerTest {
         configs.put(BucketPriorityConfig.TOPIC_CONFIG, topic);
         configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
         configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
-        configs.put(BucketPriorityConfig.FALLBACK_ACTION_CONFIG, "Discard");
+        configs.put(BucketPriorityConfig.FALLBACK_PARTITIONER_CONFIG,
+            DiscardPartitioner.class.getName());
         BucketPriorityPartitioner partitioner = new BucketPriorityPartitioner();
         partitioner.configure(configs);
 

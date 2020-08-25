@@ -29,14 +29,12 @@ import org.apache.kafka.common.Cluster;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.clients.producer.Partitioner;
-import org.apache.kafka.clients.producer.RoundRobinPartitioner;
-import org.apache.kafka.clients.producer.internals.DefaultPartitioner;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
 import org.apache.kafka.common.utils.Utils;
 
 public class BucketPriorityPartitioner implements Partitioner {
 
-    private Partitioner fallbackPartitioner;
+    private Partitioner fallback;
     private BucketPriorityConfig config;
     private ThreadLocal<String> lastBucket;
     private Map<String, Bucket> buckets;
@@ -51,25 +49,17 @@ public class BucketPriorityPartitioner implements Partitioner {
             allocation.add(Integer.parseInt(allocItem));
         }
         if (config.buckets().size() != allocation.size()) {
-            throw new InvalidConfigurationException("The bucket allocation " + 
+            throw new InvalidConfigurationException("The bucket allocation " +
                 "doesn't match with the number of buckets configured.");
         }
-        int sumAllBuckets = allocation.stream()
-            .mapToInt(Integer::intValue)
-            .sum();
+        int sumAllBuckets = allocation.stream().mapToInt(Integer::intValue).sum();
         if (sumAllBuckets != 100) {
             throw new InvalidConfigurationException("The bucket allocation " +
                 "is incorrect. The sum of all buckets needs to be 100.");
         }
-        switch (config.fallbackAction()) {
-            case DEFAULT:
-                fallbackPartitioner = new DefaultPartitioner();
-                break;
-            case ROUNDROBIN:
-                fallbackPartitioner = new RoundRobinPartitioner();
-                break;
-            default:
-        }
+        fallback = config.getConfiguredInstance(
+            BucketPriorityConfig.FALLBACK_PARTITIONER_CONFIG,
+            Partitioner.class);
         lastBucket = new ThreadLocal<>();
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
@@ -102,35 +92,17 @@ public class BucketPriorityPartitioner implements Partitioner {
                         lastBucket.set(bucketName);
                         partition = getPartition(bucketName, cluster);
                     } else {
-                        partition = fallback(topic, key, keyBytes,
-                            value, valueBytes, cluster);
+                        partition = fallback.partition(topic,
+                            key, keyBytes, value, valueBytes, cluster);
                     }
                 }
             } else {
-                partition = fallback(topic, key, keyBytes,
-                    value, valueBytes, cluster);
+                partition = fallback.partition(topic,
+                    key, keyBytes, value, valueBytes, cluster);
             }
         } else {
-            partition = fallback(topic, key, keyBytes,
-                value, valueBytes, cluster);
-        }
-        return partition;
-    }
-
-    private int fallback(String topic, Object key, byte[] keyBytes,
-        Object value, byte[] valueBytes, Cluster cluster) {
-        int partition = -1;
-        switch (config.fallbackAction()) {
-            case DEFAULT:
-                partition = fallbackPartitioner.partition(topic,
-                    key, keyBytes, value, valueBytes, cluster);
-                break;
-            case ROUNDROBIN:
-                partition = fallbackPartitioner.partition(topic,
-                    key, keyBytes, value, valueBytes, cluster);
-                break;
-            case DISCARD:
-                break;
+            partition = fallback.partition(topic,
+                key, keyBytes, value, valueBytes, cluster);
         }
         return partition;
     }

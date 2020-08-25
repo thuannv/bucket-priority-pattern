@@ -32,11 +32,12 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.InvalidConfigurationException;
-import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.apache.kafka.clients.consumer.internals.AbstractPartitionAssignor;
 import org.apache.kafka.common.utils.Utils;
 
-public class BucketPriorityAssignor extends CooperativeStickyAssignor implements Configurable {
+public class BucketPriorityAssignor extends AbstractPartitionAssignor implements Configurable {
 
+    private AbstractPartitionAssignor fallback;
     private BucketPriorityConfig config;
     private Map<String, Bucket> buckets;
     private int lastPartitionCount;
@@ -65,6 +66,9 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
             throw new InvalidConfigurationException("The bucket allocation " +
                 "is incorrect. The sum of all buckets needs to be 100.");
         }
+        fallback = config.getConfiguredInstance(
+            BucketPriorityConfig.FALLBACK_ASSIGNOR_CONFIG,
+            AbstractPartitionAssignor.class);
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
             String bucketName = config.buckets().get(i).trim();
@@ -106,20 +110,13 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
             updatePartitionsAssignment(numPartitions);
             lastPartitionCount = numPartitions;
         }
-        // Create a first version of the assignments
-        // using the strategy inherited from super.
-        Map<String, List<TopicPartition>> assignments = super.assign(partitionsPerTopic, subscriptions);
-        // Remove from the current assignments all the
-        // consumers that are using a bucket priority
-        // strategy. The remaining assignments should
-        // be used as they are.
-        List<String> consumersToRemove = new ArrayList<>();
-        Map<String, List<TopicPartition>> bucketAssignments = new LinkedHashMap<>();
+        Map<String, List<TopicPartition>> assignments = new LinkedHashMap<>();
         Map<String, List<String>> consumersPerBucket = new LinkedHashMap<>();
-        for (String consumer : assignments.keySet()) {
+        Map<String, Subscription> otherTopicsSubscriptions = new LinkedHashMap<>();
+        for (String consumer : subscriptions.keySet()) {
             Subscription subscription = subscriptions.get(consumer);
             if (subscription.topics().contains(config.topic())) {
-                bucketAssignments.put(consumer, new ArrayList<>());
+                assignments.put(consumer, new ArrayList<>());
                 ByteBuffer userData = subscription.userData();
                 Charset charset = StandardCharsets.UTF_8;
                 String bucket = charset.decode(userData).toString();
@@ -133,11 +130,10 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
                         consumersPerBucket.put(bucket, consumers);
                     }
                 }
-                consumersToRemove.add(consumer);
+            } else {
+                otherTopicsSubscriptions.put(consumer, subscription);
             }
         }
-        // Remove the consumers that should use bucket priority
-        consumersToRemove.stream().forEach(c -> assignments.remove(c));
         // Evenly distribute the partitions across the
         // available consumers in a per-bucket basis.
         AtomicInteger counter = new AtomicInteger(-1);
@@ -149,12 +145,18 @@ public class BucketPriorityAssignor extends CooperativeStickyAssignor implements
                     int nextValue = counter.incrementAndGet();
                     int index = Utils.toPositive(nextValue) % consumers.size();
                     String consumer = consumers.get(index);
-                    bucketAssignments.get(consumer).add(partition);
+                    assignments.get(consumer).add(partition);
                 }
             }
         }
-        // Finally merge the two assignments back
-        assignments.putAll(bucketAssignments);
+        // If there are subscriptions for topics that
+        // are not based on buckets then use the fallback
+        // assignor to create their partition assignments.
+        if (!otherTopicsSubscriptions.isEmpty()) {
+            Map<String, List<TopicPartition>> fallbackAssignments =
+                fallback.assign(partitionsPerTopic, otherTopicsSubscriptions);
+            assignments.putAll(fallbackAssignments);
+        }
         return assignments;
     }
 
