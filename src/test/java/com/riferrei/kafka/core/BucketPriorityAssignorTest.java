@@ -95,6 +95,20 @@ public class BucketPriorityAssignorTest {
     }
 
     @Test
+    public void checkIfFallbackPartitionerIsValid() {
+        final Map<String, String> configs = new HashMap<>();
+        final BucketPriorityAssignor assignor = new BucketPriorityAssignor();
+        assertThrows(InvalidConfigurationException.class, () -> {
+            configs.put(BucketPriorityConfig.TOPIC_CONFIG, "test");
+            configs.put(BucketPriorityConfig.BUCKETS_CONFIG, "B1, B2");
+            configs.put(BucketPriorityConfig.ALLOCATION_CONFIG, "70%, 30%");
+            configs.put(BucketPriorityConfig.FALLBACK_ASSIGNOR_CONFIG,
+                BucketPriorityAssignorTest.class.getName());
+            assignor.configure(configs);
+        });
+    }
+
+    @Test
     public void checkIfMinNumberPartitionsIsRespected() {
         final String topic = "test";
         final Map<String, String> configs = new HashMap<>();

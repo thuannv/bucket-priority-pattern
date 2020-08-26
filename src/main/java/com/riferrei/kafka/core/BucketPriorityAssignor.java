@@ -66,9 +66,14 @@ public class BucketPriorityAssignor extends AbstractPartitionAssignor implements
             throw new InvalidConfigurationException("The bucket allocation " +
                 "is incorrect. The sum of all buckets needs to be 100.");
         }
-        fallback = config.getConfiguredInstance(
-            BucketPriorityConfig.FALLBACK_ASSIGNOR_CONFIG,
-            AbstractPartitionAssignor.class);
+        try {
+            fallback = config.getConfiguredInstance(
+                BucketPriorityConfig.FALLBACK_ASSIGNOR_CONFIG,
+                AbstractPartitionAssignor.class);
+        } catch (Exception ex) {
+            throw new InvalidConfigurationException("The fallback " +
+                "assignor configured is invalid.", ex);
+        }
         buckets = new LinkedHashMap<>();
         for (int i = 0; i < config.buckets().size(); i++) {
             String bucketName = config.buckets().get(i).trim();
