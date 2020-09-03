@@ -25,8 +25,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.riferrei.kafka.core</groupId>
-    <artifactId>bucket-priority</artifactId>
-    <description>Groups topic partitions into buckets so these buckets can be processed in a given priority order.</description>
+    <artifactId>bucket-priority-pattern</artifactId>
+    <description>Pattern that groups topic partitions into buckets so these buckets can be processed in a given priority order.</description>
     <version>0.1.1</version>
 
     <licenses>
@@ -49,14 +49,14 @@
     </developers>
 
     <scm>
-        <connection>scm:git:https://github.com/riferrei/bucket-priority.git</connection>
-        <developerConnection>scm:git:git@github.com:riferrei/bucket-priority.git</developerConnection>
-        <url>https://github.com/riferrei/bucket-priority</url>
+        <connection>scm:git:https://github.com/riferrei/bucket-priority-pattern.git</connection>
+        <developerConnection>scm:git:git@github.com:riferrei/bucket-priority-pattern.git</developerConnection>
+        <url>https://github.com/riferrei/bucket-priority-pattern</url>
     </scm>
 
     <issueManagement>
         <system>github</system>
-        <url>https://github.com/riferrei/bucket-priority/issues</url>
+        <url>https://github.com/riferrei/bucket-priority-pattern/issues</url>
     </issueManagement>
 
     <properties>
